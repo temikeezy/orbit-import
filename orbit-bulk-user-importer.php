@@ -185,16 +185,57 @@ add_action( 'admin_post_oui_upload_csv', static function () {
 	if ( ! current_user_can( OUI_CAP_IMPORT ) || ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'oui_admin' ) ) {
 		wp_die( esc_html__( 'Unauthorized', 'orbit-import' ) );
 	}
-	$_REQUEST['nonce'] = $_POST['nonce'];
-	// Reuse AJAX handler logic
-	ob_start();
-	do_action( 'wp_ajax_oui_upload_csv' );
-	$response = json_decode( ob_get_clean(), true );
-	if ( isset( $response['success'] ) && $response['success'] && isset( $response['data']['redirect'] ) ) {
-		wp_safe_redirect( esc_url_raw( $response['data']['redirect'] ) );
-		exit;
+	if ( empty( $_FILES['file'] ) || ! isset( $_FILES['file']['tmp_name'] ) ) {
+		wp_die( esc_html__( 'No file uploaded', 'orbit-import' ) );
 	}
-	wp_die( esc_html__( 'Upload failed.', 'orbit-import' ) );
+	$file = $_FILES['file'];
+	$size = isset( $file['size'] ) ? (int) $file['size'] : 0;
+	$max  = apply_filters( 'oui_max_csv_size', 10 * 1024 * 1024 );
+	if ( $size <= 0 || $size > $max ) {
+		wp_die( esc_html__( 'File too large', 'orbit-import' ) );
+	}
+	$ext = strtolower( pathinfo( $file['name'], PATHINFO_EXTENSION ) );
+	if ( ! in_array( $ext, array( 'csv', 'xlsx' ), true ) ) {
+		wp_die( esc_html__( 'Invalid file type', 'orbit-import' ) );
+	}
+	$uploads = wp_upload_dir();
+	$dir = trailingslashit( $uploads['basedir'] ) . 'orbit-import/';
+	wp_mkdir_p( $dir );
+	$target = $dir . wp_unique_filename( $dir, sanitize_file_name( $file['name'] ) );
+	if ( ! move_uploaded_file( $file['tmp_name'], $target ) ) {
+		wp_die( esc_html__( 'Could not save file', 'orbit-import' ) );
+	}
+	$hash = md5_file( $target );
+	$job_id = wp_insert_post( array(
+		'post_type' => 'orbit_import_job',
+		'post_status' => 'publish',
+		'post_title' => 'Import ' . current_time( 'mysql' ),
+	), true );
+	if ( is_wp_error( $job_id ) ) {
+		wp_die( esc_html( $job_id->get_error_message() ) );
+	}
+	$defaults = OUI\Import\Job::default_meta();
+	$defaults['_file_path'] = $target;
+	$defaults['_file_hash'] = $hash;
+	$defaults['_processed'] = 0;
+	$defaults['_file_ext'] = $ext;
+	$headers = array();
+	if ( 'csv' === $ext ) {
+		$dialect = OUI\Support\CSV::detect_dialect( $target );
+		$defaults['_csv_dialect'] = $dialect;
+		$gen = OUI\Support\CSV::iterate( $target, $dialect['delimiter'], $dialect['enclosure'], $dialect['escape'] );
+		foreach ( $gen as $row ) { $headers = is_array( $row ) ? $row : array(); break; }
+	} else {
+		$gen = OUI\Support\XLSX::iterate( $target );
+		foreach ( $gen as $row ) { $headers = is_array( $row ) ? $row : array(); break; }
+	}
+	$headers = array_filter( array_map( 'strval', $headers ) );
+	foreach ( $defaults as $k => $v ) { update_post_meta( $job_id, $k, $v ); }
+	OUI\Import\Job::set_headers( $job_id, $headers );
+	OUI\Import\Job::set_status( $job_id, OUI\Import\Job::STATUS_CREATED );
+	$map_url = add_query_arg( array( 'page' => 'orbit-import', 'step' => 'map', 'job' => (int) $job_id ), admin_url( 'users.php' ) );
+	wp_safe_redirect( $map_url );
+	exit;
 } );
 
 add_action( 'wp_ajax_oui_save_mapping', static function(){
