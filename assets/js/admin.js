@@ -4,6 +4,7 @@
 
 		var $drop = $('#oui-dropzone');
 		var $file = $('#oui-file-input');
+		var $btnUpload = $('#oui-upload-form button[type="submit"]');
 		if($drop.length){
 			$drop.on('dragover dragenter', function(e){ e.preventDefault(); e.stopPropagation(); $drop.css('border-color', '#2271b1'); });
 			$drop.on('dragleave dragend drop', function(e){ e.preventDefault(); e.stopPropagation(); $drop.css('border-color', '#bbb'); });
@@ -18,21 +19,29 @@
 
 		$('#oui-upload-form').on('submit', function(e){
 			e.preventDefault();
+			if(!$file[0] || !$file[0].files || !$file[0].files.length){ alert('Please choose a file.'); return; }
 			var formData = new FormData(this);
 			formData.append('action','oui_upload_csv');
 			formData.append('nonce', OUI.nonce);
+			$btnUpload.prop('disabled', true).text('Uploading...');
 			$.ajax({ url: OUI.ajaxUrl, method: 'POST', data: formData, contentType: false, processData: false })
 			.done(function(res){
 				if(res && res.success){
-					var jobId = res.data.job_id;
-					if(res.data.redirect){
-						window.location.href = res.data.redirect;
-						return;
-					}
-					$('#oui-job-id').val(jobId);
+					if(res.data.redirect){ window.location.href = res.data.redirect; return; }
+					var jobId = res.data.job_id; $('#oui-job-id').val(jobId);
 					$.post(OUI.ajaxUrl, { action: 'oui_dry_run', nonce: OUI.nonce, job_id: jobId })
 					.done(function(dr){ if(dr && dr.success){ $('#oui-dry-create').text(dr.data.created); $('#oui-dry-update').text(dr.data.updated); $('#oui-dry-invalid').text(dr.data.invalid); $('#oui-dry-unknown').text((dr.data.unknown_streams||[]).length); if($('#oui-dry-dup').length){ $('#oui-dry-dup').text(dr.data.duplicates||0); } if($('#oui-dry-estimate').length){ $('#oui-dry-estimate').text((dr.data.estimate_per_1k||'-') + ' s'); } } });
-				}else{ alert(res && res.data && res.data.message ? res.data.message : 'Error'); }
+				}else{
+					alert((res && res.data && res.data.message) ? res.data.message : 'Upload failed.');
+				}
+			})
+			.fail(function(xhr){
+				var msg = 'Upload failed';
+				if(xhr && xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message){ msg = xhr.responseJSON.data.message; }
+				alert(msg);
+			})
+			.always(function(){
+				$btnUpload.prop('disabled', false).text('Upload');
 			});
 		});
 
