@@ -111,9 +111,9 @@ add_action( 'admin_init', static function () {
 	}
 } );
 
-add_action( 'admin_enqueue_scripts', static function ( $hook ) {
-	$allowed = array( 'users_page_orbit-import', 'tools_page_orbit-import-tools', 'users_page_oui-settings' );
-	if ( ! in_array( $hook, $allowed, true ) ) {
+add_action( 'admin_enqueue_scripts', static function () {
+	$page = isset( $_GET['page'] ) ? sanitize_key( $_GET['page'] ) : '';
+	if ( ! in_array( $page, array( 'orbit-import', 'orbit-import-tools', 'oui-settings' ), true ) ) {
 		return;
 	}
 	wp_enqueue_style( 'oui-admin', OUI_PLUGIN_URL . 'assets/css/admin.css', array(), OUI_VERSION );
