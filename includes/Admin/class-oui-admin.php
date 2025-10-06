@@ -21,7 +21,10 @@ class Admin {
 		}
 
 		echo '<div class="wrap"><h1>' . esc_html__( 'ORBIT Import', 'orbit-import' ) . '</h1>';
+		// Free-form header container to avoid WP nav-tab defaults
+		echo '<div class="oui-header">';
 		$this->stepper( $step, $job_id );
+		echo '</div>';
 		echo '<div class="oui-step-content">';
 		switch ( $step ) {
 			case 'map': $this->view( 'map', $job_id ); break;
@@ -47,19 +50,12 @@ class Admin {
 
 		echo '<ol class="oui-steps">';
 		foreach ( $steps as $i => $s ) {
-			$state = 'disabled';
-			if ( $i < $current_index ) { $state = 'completed'; }
-			elseif ( $i === $current_index ) { $state = 'current'; }
-			$index = $i + 1;
-			$label = $s['label'];
-			$url = $this->step_url( $s['slug'], $job_id );
+			$state = 'disabled'; if ( $i < $current_index ) { $state = 'completed'; } elseif ( $i === $current_index ) { $state = 'current'; }
+			$index = $i + 1; $label = $s['label']; $url = $this->step_url( $s['slug'], $job_id );
 			echo '<li class="oui-step oui-' . esc_attr( $state ) . '">';
 			echo '<span class="oui-step-index">' . esc_html( (string) $index ) . '</span>';
-			if ( 'disabled' === $state ) {
-				echo '<span class="oui-step-label">' . esc_html( $label ) . '</span>';
-			} else {
-				echo '<a class="oui-step-label" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
-			}
+			if ( 'disabled' === $state ) { echo '<span class="oui-step-label">' . esc_html( $label ) . '</span>'; }
+			else { echo '<a class="oui-step-label" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>'; }
 			echo '</li>';
 		}
 		echo '</ol>';
@@ -71,21 +67,17 @@ class Admin {
 	}
 
 	private function step_url( $step, $job_id ) {
-		$args = array( 'page' => 'orbit-import', 'step' => $step );
-		if ( $job_id ) { $args['job'] = (int) $job_id; }
+		$args = array( 'page' => 'orbit-import', 'step' => $step ); if ( $job_id ) { $args['job'] = (int) $job_id; }
 		return add_query_arg( $args, admin_url( 'users.php' ) );
 	}
 
 	private function assert_step_allowed( $step, $job_id ) {
 		if ( 'upload' === $step ) { return array( 'ok' => true ); }
-		if ( ! $job_id || get_post_type( $job_id ) !== Job::POST_TYPE ) {
-			return array( 'ok' => false, 'redirect' => 'upload', 'message' => __( 'Please upload a file to start.', 'orbit-import' ) );
-		}
+		if ( ! $job_id || get_post_type( $job_id ) !== Job::POST_TYPE ) { return array( 'ok' => false, 'redirect' => 'upload', 'message' => __( 'Please upload a file to start.', 'orbit-import' ) ); }
 		$status = Job::get_status( $job_id );
 		switch ( $step ) {
 			case 'map':
-				$has_file = (bool) get_post_meta( $job_id, '_file_path', true );
-				$headers = Job::get_headers( $job_id );
+				$has_file = (bool) get_post_meta( $job_id, '_file_path', true ); $headers = Job::get_headers( $job_id );
 				if ( ! $has_file ) { return array( 'ok' => false, 'redirect' => 'upload', 'message' => __( 'Upload a file first.', 'orbit-import' ) ); }
 				if ( empty( $headers ) ) { return array( 'ok' => false, 'redirect' => 'upload', 'message' => __( 'Could not read headers; please re-upload.', 'orbit-import' ) ); }
 				return array( 'ok' => true );

@@ -24,8 +24,13 @@
 			$.ajax({ url: OUI.ajaxUrl, method: 'POST', data: formData, contentType: false, processData: false })
 			.done(function(res){
 				if(res && res.success){
-					$('#oui-job-id').val(res.data.job_id);
-					$.post(OUI.ajaxUrl, { action: 'oui_dry_run', nonce: OUI.nonce, job_id: res.data.job_id })
+					var jobId = res.data.job_id;
+					if(res.data.redirect){
+						window.location.href = res.data.redirect;
+						return;
+					}
+					$('#oui-job-id').val(jobId);
+					$.post(OUI.ajaxUrl, { action: 'oui_dry_run', nonce: OUI.nonce, job_id: jobId })
 					.done(function(dr){ if(dr && dr.success){ $('#oui-dry-create').text(dr.data.created); $('#oui-dry-update').text(dr.data.updated); $('#oui-dry-invalid').text(dr.data.invalid); $('#oui-dry-unknown').text((dr.data.unknown_streams||[]).length); if($('#oui-dry-dup').length){ $('#oui-dry-dup').text(dr.data.duplicates||0); } if($('#oui-dry-estimate').length){ $('#oui-dry-estimate').text((dr.data.estimate_per_1k||'-') + ' s'); } } });
 				}else{ alert(res && res.data && res.data.message ? res.data.message : 'Error'); }
 			});
