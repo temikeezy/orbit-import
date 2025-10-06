@@ -21,7 +21,19 @@ class Admin {
 		}
 
 		echo '<div class="wrap"><h1>' . esc_html__( 'ORBIT Import', 'orbit-import' ) . '</h1>';
-		// Free-form header container to avoid WP nav-tab defaults
+		// Inline stepper styles to ensure rendering even if assets are cached
+		echo '<style>
+		.oui-header{margin:6px 0 10px}
+		.oui-steps{list-style:none;margin:0;padding:0;display:flex;gap:20px;align-items:center}
+		.oui-step{display:flex;align-items:center;gap:8px;opacity:.65}
+		.oui-step.current,.oui-step.completed{opacity:1}
+		.oui-step-index{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:600;background:#e2e8f0;color:#111}
+		.oui-step.current .oui-step-index{background:#2271b1;color:#fff}
+		.oui-step.completed .oui-step-index{background:#16a34a;color:#fff}
+		.oui-step-label{font-weight:600;text-decoration:none;color:#1d2327}
+		.oui-step.disabled .oui-step-label{color:#7a7a7a;cursor:default}
+		</style>';
+
 		echo '<div class="oui-header">';
 		$this->stepper( $step, $job_id );
 		echo '</div>';
