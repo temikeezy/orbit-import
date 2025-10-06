@@ -1,6 +1,6 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
-$job_id = isset( $_GET['job_id'] ) ? (int) $_GET['job_id'] : 0;
+$job_id = isset( $_GET['job'] ) ? (int) $_GET['job'] : 0;
 $processed = $job_id ? (int) get_post_meta( $job_id, '_processed', true ) : 0;
 $totals = $job_id ? (array) get_post_meta( $job_id, '_totals', true ) : array();
 $errors_csv = $job_id ? (string) get_post_meta( $job_id, '_errors_csv', true ) : '';
@@ -21,4 +21,8 @@ if ( $errors_csv ) {
 	<?php if ( $errors_url ) : ?>
 		<p><a class="button" id="oui-download-errors" href="<?php echo esc_url( $errors_url ); ?>"><?php echo esc_html__( 'Download Error CSV', 'orbit-import' ); ?></a></p>
 	<?php endif; ?>
+	<p>
+		<a class="button" href="<?php echo esc_url( add_query_arg( array( 'page' => 'orbit-import', 'step' => 'run', 'job' => (int) $job_id ), admin_url( 'users.php' ) ) ); ?>"><?php echo esc_html__( 'Back', 'orbit-import' ); ?></a>
+		<a class="button button-primary" href="<?php echo esc_url( add_query_arg( array( 'page' => 'orbit-import', 'step' => 'upload' ), admin_url( 'users.php' ) ) ); ?>"><?php echo esc_html__( 'Finish', 'orbit-import' ); ?></a>
+	</p>
 </div>

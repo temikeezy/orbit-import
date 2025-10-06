@@ -4,18 +4,28 @@ namespace OUI\Import;
 use OUI\Integrations\BuddyBoss;
 use OUI\Integrations\OTM;
 use OUI\Support\CSV as CSVSupport;
+use OUI\Support\XLSX as XLSXSupport;
 use OUI\Support\Utils;
 
 defined( 'ABSPATH' ) || exit;
 
 class Runner {
+	private static function get_iterator( $file, $ext ) {
+		$ext = strtolower( (string) $ext );
+		if ( $ext === 'xlsx' ) {
+			return XLSXSupport::iterate( $file );
+		}
+		$dialect = CSVSupport::detect_dialect( $file );
+		return CSVSupport::iterate( $file, $dialect['delimiter'], $dialect['enclosure'], $dialect['escape'] );
+	}
+
 	public static function dry_run( $job_id ) {
 		$job_id = (int) $job_id;
 		if ( $job_id <= 0 ) { return new \WP_Error( 'invalid_job', __( 'Invalid job.', 'orbit-import' ) ); }
 		$file = get_post_meta( $job_id, '_file_path', true );
 		if ( empty( $file ) || ! file_exists( $file ) ) { return new \WP_Error( 'no_file', __( 'Job file missing.', 'orbit-import' ) ); }
-		$dialect = CSVSupport::detect_dialect( $file );
-		$gen = CSVSupport::iterate( $file, $dialect['delimiter'], $dialect['enclosure'], $dialect['escape'] );
+		$ext = get_post_meta( $job_id, '_file_ext', true );
+		$gen = self::get_iterator( $file, $ext );
 		$headers = array(); $firstRow = true; $created = 0; $updated = 0; $invalid = 0; $unknown_streams = array(); $rows_total = 0;
 		foreach ( $gen as $row ) {
 			if ( $firstRow ) { $headers = $row; $firstRow = false; continue; }
@@ -53,8 +63,8 @@ class Runner {
 		$mode      = get_post_meta( $job_id, '_stream_assign_mode', true ); $mode = in_array( $mode, array( 'csv_only','append_bulk','replace_with_bulk' ), true ) ? $mode : 'csv_only';
 		$apply_bulk_existing_only = (bool) get_post_meta( $job_id, '_bulk_stream_apply_existing_only', true );
 
-		$dialect = CSVSupport::detect_dialect( $file );
-		$gen = CSVSupport::iterate( $file, $dialect['delimiter'], $dialect['enclosure'], $dialect['escape'] );
+		$ext = get_post_meta( $job_id, '_file_ext', true );
+		$gen = self::get_iterator( $file, $ext );
 
 		$index = -1; $created = 0; $updated = 0; $skipped = 0; $errors = 0; $count = 0;
 		$headers = array(); $headerMap = array(); $batch_size = (int) $settings['batch_size'];
@@ -89,19 +99,8 @@ class Runner {
 
 			$meta = array(); foreach ( $headerMap as $h => $i ) { if ( strpos( $h, 'meta:' ) === 0 && isset( $row[ $i ] ) ) { $key = sanitize_key( substr( $h, 5 ) ); $meta[ $key ] = sanitize_text_field( (string) $row[ $i ] ); } }
 
-			if ( $user && $user->ID ) {
-				$user_id = (int) $user->ID; $update = array( 'ID' => $user_id );
-				if ( $first_name !== '' ) { $update['first_name'] = $first_name; }
-				if ( $last_name !== '' )  { $update['last_name']  = $last_name; }
-				if ( $display_name !== '' ) { $update['display_name'] = $display_name; }
-				wp_update_user( $update ); if ( $wp_role ) { $wp_user = new \WP_User( $user_id ); $wp_user->set_role( $wp_role ); }
-				$updated++;
-			} else {
-				$new_user = array( 'user_login' => $username, 'user_email' => $email, 'user_pass' => $password, 'first_name' => $first_name, 'last_name' => $last_name, 'display_name' => $display_name !== '' ? $display_name : ( $first_name !== '' ? $first_name . ' ' . $last_name : $username ), 'role' => $wp_role );
-				$user_id = wp_insert_user( $new_user );
-				if ( is_wp_error( $user_id ) ) { $skipped++; $errors++; $logger->log_error_row( $row, $user_id->get_error_message() ); $count++; if ( $count >= $batch_size ) { break; } continue; }
-				$is_new = true; $created++;
-			}
+			if ( $user && $user->ID ) { $user_id = (int) $user->ID; $update = array( 'ID' => $user_id ); if ( $first_name !== '' ) { $update['first_name'] = $first_name; } if ( $last_name !== '' )  { $update['last_name']  = $last_name; } if ( $display_name !== '' ) { $update['display_name'] = $display_name; } wp_update_user( $update ); if ( $wp_role ) { $wp_user = new \WP_User( $user_id ); $wp_user->set_role( $wp_role ); } $updated++; }
+			else { $new_user = array( 'user_login' => $username, 'user_email' => $email, 'user_pass' => $password, 'first_name' => $first_name, 'last_name' => $last_name, 'display_name' => $display_name !== '' ? $display_name : ( $first_name !== '' ? $first_name . ' ' . $last_name : $username ), 'role' => $wp_role ); $user_id = wp_insert_user( $new_user ); if ( is_wp_error( $user_id ) ) { $skipped++; $errors++; $logger->log_error_row( $row, $user_id->get_error_message() ); $count++; if ( $count >= $batch_size ) { break; } continue; } $is_new = true; $created++; }
 
 			foreach ( $meta as $k => $v ) { update_user_meta( $user_id, $k, $v ); }
 			if ( $user_status !== '' ) { update_user_meta( $user_id, 'user_status', (int) $user_status ); }
@@ -119,14 +118,7 @@ class Runner {
 			else { $target_ids = array_map( 'intval', $csv_group_ids ); }
 			if ( $apply_bulk_existing_only && $is_new && 'csv_only' !== $mode ) { $target_ids = array_map( 'intval', $csv_group_ids ); }
 
-			if ( BuddyBoss::is_active() && ! empty( $target_ids ) ) {
-				foreach ( $target_ids as $gid ) {
-					if ( $gid <= 0 ) { continue; }
-					BuddyBoss::join_group( $gid, $user_id );
-					$role = 'member'; if ( in_array( $gid, array_map( 'intval', $bulk_ids ), true ) && 'csv_only' !== $mode ) { $role = $bulk_role; } else { $idx = array_search( $gid, $csv_group_ids, true ); if ( false !== $idx && isset( $csv_roles_aligned[ $idx ] ) ) { $role = $csv_roles_aligned[ $idx ]; } }
-					BuddyBoss::promote( $gid, $user_id, $role );
-				}
-			}
+			if ( BuddyBoss::is_active() && ! empty( $target_ids ) ) { foreach ( $target_ids as $gid ) { if ( $gid <= 0 ) { continue; } BuddyBoss::join_group( $gid, $user_id ); $role = 'member'; if ( in_array( $gid, array_map( 'intval', $bulk_ids ), true ) && 'csv_only' !== $mode ) { $role = $bulk_role; } else { $idx = array_search( $gid, $csv_group_ids, true ); if ( false !== $idx && isset( $csv_roles_aligned[ $idx ] ) ) { $role = $csv_roles_aligned[ $idx ]; } } BuddyBoss::promote( $gid, $user_id, $role ); } }
 
 			if ( $is_new && ! empty( $settings['welcome_email'] ) ) { wp_new_user_notification( $user_id, null, 'user' ); }
 
@@ -138,7 +130,6 @@ class Runner {
 
 		if ( $logger->has_errors() ) { $uploads = wp_upload_dir(); $dir = trailingslashit( $uploads['basedir'] ) . 'orbit-import/'; wp_mkdir_p( $dir ); $path = $dir . 'errors-job-' . $job_id . '-' . time() . '.csv'; $csv_path = $logger->export_errors_csv( $path ); if ( $csv_path ) { update_post_meta( $job_id, '_errors_csv', $csv_path ); } }
 
-		// Try to estimate percent if rows_total known
 		$percent = 0; if ( ! empty( $totals['rows_total'] ) ) { $percent = min( 100, (int) floor( ( $processed / (int) $totals['rows_total'] ) * 100 ) ); }
 		return array( 'processed' => $processed, 'created' => $created, 'updated' => $updated, 'skipped' => $skipped, 'errors' => $errors, 'percent' => $percent );
 	}

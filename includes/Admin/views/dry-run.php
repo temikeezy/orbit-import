@@ -11,5 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 		<li><?php echo esc_html__( 'Invalid rows:', 'orbit-import' ); ?> <span id="oui-dry-invalid">0</span></li>
 		<li><?php echo esc_html__( 'Unknown streams:', 'orbit-import' ); ?> <span id="oui-dry-unknown">0</span></li>
 	</ul>
-	<p><button class="button button-primary" id="oui-start-import"><?php echo esc_html__( 'Run Import', 'orbit-import' ); ?></button></p>
+	<p>
+		<a class="button" href="<?php echo esc_url( add_query_arg( array( 'page' => 'orbit-import', 'step' => 'map' ), admin_url( 'users.php' ) ) ); ?>"><?php echo esc_html__( 'Back', 'orbit-import' ); ?></a>
+		<button class="button button-primary" id="oui-start-import"><?php echo esc_html__( 'Run Import', 'orbit-import' ); ?></button>
+	</p>
 </div>

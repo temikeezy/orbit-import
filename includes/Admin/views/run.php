@@ -1,6 +1,6 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
-$job_id = isset( $_GET['job_id'] ) ? (int) $_GET['job_id'] : 0;
+$job_id = isset( $_GET['job'] ) ? (int) $_GET['job'] : ( isset( $_GET['job_id'] ) ? (int) $_GET['job_id'] : 0 );
 ?>
 <div class="oui-panel">
 	<h2><?php echo esc_html__( 'Run Import', 'orbit-import' ); ?></h2>
@@ -10,7 +10,7 @@ $job_id = isset( $_GET['job_id'] ) ? (int) $_GET['job_id'] : 0;
 	</div>
 	<p><span id="oui-progress-text">0%</span></p>
 	<p>
-		<button class="button" id="oui-cancel-import"><?php echo esc_html__( 'Cancel', 'orbit-import' ); ?></button>
+		<a class="button" href="<?php echo esc_url( add_query_arg( array( 'page' => 'orbit-import', 'step' => 'dry-run', 'job' => (int) $job_id ), admin_url( 'users.php' ) ) ); ?>"><?php echo esc_html__( 'Back', 'orbit-import' ); ?></a>
 		<button class="button" id="oui-resume-import"><?php echo esc_html__( 'Resume', 'orbit-import' ); ?></button>
 	</p>
 </div>

@@ -2,6 +2,20 @@
 	$(function(){
 		function getJobId(){ return parseInt($('#oui-job-id').val()||'0',10); }
 
+		var $drop = $('#oui-dropzone');
+		var $file = $('#oui-file-input');
+		if($drop.length){
+			$drop.on('dragover dragenter', function(e){ e.preventDefault(); e.stopPropagation(); $drop.css('border-color', '#2271b1'); });
+			$drop.on('dragleave dragend drop', function(e){ e.preventDefault(); e.stopPropagation(); $drop.css('border-color', '#bbb'); });
+			$drop.on('drop', function(e){
+				var dt = e.originalEvent.dataTransfer;
+				if(dt && dt.files && dt.files.length){
+					$file[0].files = dt.files;
+					$('#oui-upload-form').trigger('submit');
+				}
+			});
+		}
+
 		$('#oui-upload-form').on('submit', function(e){
 			e.preventDefault();
 			var formData = new FormData(this);

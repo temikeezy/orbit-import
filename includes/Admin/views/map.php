@@ -27,7 +27,10 @@ if ( $bb_active ) {
 			<tr><th><?php echo esc_html__( 'Stream Roles', 'orbit-import' ); ?></th><td><input type="text" id="oui-map-stream_roles" placeholder="stream_roles" /></td></tr>
 			<tr><th><?php echo esc_html__( 'Meta prefix', 'orbit-import' ); ?></th><td><input type="text" id="oui-map-meta_prefix" placeholder="meta:" /></td></tr>
 		</table>
-		<p><button class="button button-primary" id="oui-save-mapping"><?php echo esc_html__( 'Save Mapping', 'orbit-import' ); ?></button></p>
+		<p>
+			<a class="button" href="<?php echo esc_url( add_query_arg( array( 'page' => 'orbit-import', 'step' => 'upload' ), admin_url( 'users.php' ) ) ); ?>"><?php echo esc_html__( 'Back', 'orbit-import' ); ?></a>
+			<button class="button button-primary" id="oui-save-mapping"><?php echo esc_html__( 'Save & Continue', 'orbit-import' ); ?></button>
+		</p>
 	</div>
 	<?php if ( $bb_active ) : ?>
 	<div class="oui-col">
