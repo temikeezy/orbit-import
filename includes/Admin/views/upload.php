@@ -10,8 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 	<div id="oui-dropzone" style="border:2px dashed #bbb;padding:20px;text-align:center;margin-bottom:10px;">
 		<?php echo esc_html__( 'Drag & drop file here, or choose below', 'orbit-import' ); ?>
 	</div>
-	<form id="oui-upload-form" method="post" enctype="multipart/form-data">
+	<form id="oui-upload-form" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post" enctype="multipart/form-data">
 		<?php wp_nonce_field( 'oui_admin', 'nonce' ); ?>
+		<input type="hidden" name="action" value="oui_upload_csv" />
 		<input type="file" name="file" id="oui-file-input" accept=".csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx" required />
 		<p><button type="submit" class="button button-primary"><?php echo esc_html__( 'Upload', 'orbit-import' ); ?></button></p>
 	</form>

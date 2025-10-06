@@ -181,6 +181,22 @@ add_action( 'wp_ajax_oui_upload_csv', static function () {
 	wp_send_json_success( array( 'job_id' => (int) $job_id, 'redirect' => $map_url ) );
 } );
 
+add_action( 'admin_post_oui_upload_csv', static function () {
+	if ( ! current_user_can( OUI_CAP_IMPORT ) || ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'oui_admin' ) ) {
+		wp_die( esc_html__( 'Unauthorized', 'orbit-import' ) );
+	}
+	$_REQUEST['nonce'] = $_POST['nonce'];
+	// Reuse AJAX handler logic
+	ob_start();
+	do_action( 'wp_ajax_oui_upload_csv' );
+	$response = json_decode( ob_get_clean(), true );
+	if ( isset( $response['success'] ) && $response['success'] && isset( $response['data']['redirect'] ) ) {
+		wp_safe_redirect( esc_url_raw( $response['data']['redirect'] ) );
+		exit;
+	}
+	wp_die( esc_html__( 'Upload failed.', 'orbit-import' ) );
+} );
+
 add_action( 'wp_ajax_oui_save_mapping', static function(){
 	if ( ! current_user_can( OUI_CAP_IMPORT ) || ! check_ajax_referer( 'oui_admin', 'nonce', false ) ) {
 		wp_send_json_error( array( 'message' => __( 'Unauthorized', 'orbit-import' ) ), 403 );
