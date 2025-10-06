@@ -1,0 +1,3 @@
+email,username,first_name,last_name,wp_role,otm_role,streams,stream_roles,password,meta:cohort,meta:school
+alice@example.com,alice,Alice,Lee,subscriber,otm_intern,"Social Media & Content|Product Testing","member|mod",,2025 Cohort,UNILAG
+mod@example.com,,Sam,Okoro,editor,otm_moderator,"Product Testing","mod",,2025 Cohort,UI
