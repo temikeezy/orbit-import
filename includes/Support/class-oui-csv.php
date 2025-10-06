@@ -17,6 +17,17 @@ class CSV {
 		return array( 'delimiter' => $best, 'enclosure' => '"', 'escape' => '\\' );
 	}
 
+	public static function read_headers( $file, $dialect = null ) {
+		if ( ! $dialect ) { $dialect = self::detect_dialect( $file ); }
+		$csv = new SplFileObject( $file, 'r' );
+		$csv->setFlags( SplFileObject::READ_CSV | SplFileObject::SKIP_EMPTY | SplFileObject::DROP_NEW_LINE );
+		$csv->setCsvControl( $dialect['delimiter'], $dialect['enclosure'], $dialect['escape'] );
+		$csv->rewind();
+		$row = $csv->current();
+		if ( is_array( $row ) && isset( $row[0] ) ) { $row[0] = self::strip_bom( (string) $row[0] ); }
+		return is_array( $row ) ? array_map( 'strval', $row ) : array();
+	}
+
 	public static function iterate( $file, $delimiter = ',', $enclosure = '"', $escape = '\\' ) {
 		$csv = new SplFileObject( $file, 'r' );
 		$csv->setFlags( SplFileObject::READ_CSV | SplFileObject::SKIP_EMPTY | SplFileObject::DROP_NEW_LINE );

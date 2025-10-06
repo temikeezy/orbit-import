@@ -10,17 +10,24 @@ class Admin {
 		$step = isset( $_GET['step'] ) ? sanitize_key( $_GET['step'] ) : 'upload';
 		$job_id = isset( $_GET['job'] ) ? (int) $_GET['job'] : ( isset( $_GET['job_id'] ) ? (int) $_GET['job_id'] : 0 );
 
-		$allowed = $this->assert_step_allowed( $step, $job_id );
-		if ( ! $allowed['ok'] ) {
-			$redirect = $this->step_url( $allowed['redirect'], $job_id );
-			add_action( 'admin_notices', function() use ( $allowed ) {
-				echo '<div class="notice notice-warning"><p>' . esc_html( $allowed['message'] ) . '</p></div>';
-			} );
-			wp_safe_redirect( $redirect );
-			exit;
-		}
+		self::assert_step_allowed( $step, $job_id );
 
 		echo '<div class="wrap"><h1>' . esc_html__( 'ORBIT Import', 'orbit-import' ) . '</h1>';
+		if ( isset( $_GET['oui_notice'] ) ) {
+			$notice = sanitize_key( $_GET['oui_notice'] );
+			$messages = array(
+				'uploaded' => __( 'File uploaded. Proceed to mapping.', 'orbit-import' ),
+				'mapped' => __( 'Mapping saved. Preview ready.', 'orbit-import' ),
+				'need_file' => __( 'Please upload a file first.', 'orbit-import' ),
+				'need_mapping' => __( 'Please save mapping to continue.', 'orbit-import' ),
+				'need_dryrun' => __( 'Please complete the preview to continue.', 'orbit-import' ),
+				'upload_error' => __( 'Upload error. Please try again.', 'orbit-import' ),
+				'bad_type' => __( 'Unsupported file type.', 'orbit-import' ),
+				'no_file' => __( 'No file was selected.', 'orbit-import' ),
+			);
+			if ( isset( $messages[ $notice ] ) ) { echo '<div class="notice notice-info"><p>' . esc_html( $messages[ $notice ] ) . '</p></div>'; }
+		}
+
 		// Inline stepper styles to ensure rendering even if assets are cached
 		echo '<style>
 		.oui-header{margin:6px 0 10px}
@@ -49,6 +56,35 @@ class Admin {
 		echo '</div></div>';
 	}
 
+	public static function assert_step_allowed( string $step, ?int $job_id ): void {
+		if ( ! current_user_can( defined('OUI_CAP') ? OUI_CAP : 'manage_options' ) ) { wp_die( esc_html__( 'Access denied.', 'orbit-import' ) ); }
+		if ( $step === 'upload' ) { return; }
+		if ( ! $job_id ) { self::redirect_step( 'upload', 0, 'need_file' ); }
+		$status = Job::get_status( $job_id );
+		switch ( $step ) {
+			case 'map':
+				if ( ! $status || ! Job::has_file( $job_id ) ) { self::redirect_step( 'upload', $job_id, 'need_file' ); }
+				break;
+			case 'dry-run':
+				if ( $status !== Job::STATUS_MAPPED ) { self::redirect_step( 'map', $job_id, 'need_mapping' ); }
+				break;
+			case 'run':
+				if ( ! in_array( $status, array( Job::STATUS_DRY_RUN, Job::STATUS_RUNNING ), true ) ) { self::redirect_step( 'dry-run', $job_id, 'need_dryrun' ); }
+				break;
+			case 'report':
+				if ( ! in_array( $status, array( Job::STATUS_COMPLETED, Job::STATUS_CANCELLED ), true ) ) { self::redirect_step( 'run', $job_id, 'need_run' ); }
+				break;
+		}
+	}
+
+	private static function redirect_step( string $step, int $job_id = 0, string $notice = '' ): void {
+		$args = array( 'page' => defined('OUI_PAGE_SLUG') ? OUI_PAGE_SLUG : 'orbit-import', 'step' => $step );
+		if ( $job_id ) { $args['job'] = $job_id; }
+		if ( $notice ) { $args['oui_notice'] = $notice; }
+		wp_safe_redirect( add_query_arg( $args, admin_url( 'users.php' ) ) );
+		exit;
+	}
+
 	private function stepper( $current, $job_id ) {
 		$steps = array(
 			array( 'slug' => 'upload',  'label' => __( 'Upload', 'orbit-import' ) ),
@@ -63,7 +99,7 @@ class Admin {
 		echo '<ol class="oui-steps">';
 		foreach ( $steps as $i => $s ) {
 			$state = 'disabled'; if ( $i < $current_index ) { $state = 'completed'; } elseif ( $i === $current_index ) { $state = 'current'; }
-			$index = $i + 1; $label = $s['label']; $url = $this->step_url( $s['slug'], $job_id );
+			$index = $i + 1; $label = $s['label']; $url = add_query_arg( array( 'page' => OUI_PAGE_SLUG, 'step' => $s['slug'], 'job' => (int) $job_id ), admin_url( 'users.php' ) );
 			echo '<li class="oui-step oui-' . esc_attr( $state ) . '">';
 			echo '<span class="oui-step-index">' . esc_html( (string) $index ) . '</span>';
 			if ( 'disabled' === $state ) { echo '<span class="oui-step-label">' . esc_html( $label ) . '</span>'; }
@@ -76,33 +112,5 @@ class Admin {
 	private function view( $name, $job_id ) {
 		$file = plugin_dir_path( dirname( __DIR__ ) ) . 'includes/Admin/views/' . $name . '.php';
 		if ( file_exists( $file ) ) { include $file; }
-	}
-
-	private function step_url( $step, $job_id ) {
-		$args = array( 'page' => 'orbit-import', 'step' => $step ); if ( $job_id ) { $args['job'] = (int) $job_id; }
-		return add_query_arg( $args, admin_url( 'users.php' ) );
-	}
-
-	private function assert_step_allowed( $step, $job_id ) {
-		if ( 'upload' === $step ) { return array( 'ok' => true ); }
-		if ( ! $job_id || get_post_type( $job_id ) !== Job::POST_TYPE ) { return array( 'ok' => false, 'redirect' => 'upload', 'message' => __( 'Please upload a file to start.', 'orbit-import' ) ); }
-		$status = Job::get_status( $job_id );
-		switch ( $step ) {
-			case 'map':
-				$has_file = (bool) get_post_meta( $job_id, '_file_path', true ); $headers = Job::get_headers( $job_id );
-				if ( ! $has_file ) { return array( 'ok' => false, 'redirect' => 'upload', 'message' => __( 'Upload a file first.', 'orbit-import' ) ); }
-				if ( empty( $headers ) ) { return array( 'ok' => false, 'redirect' => 'upload', 'message' => __( 'Could not read headers; please re-upload.', 'orbit-import' ) ); }
-				return array( 'ok' => true );
-			case 'dry-run':
-				if ( $status !== Job::STATUS_MAPPED ) { return array( 'ok' => false, 'redirect' => 'map', 'message' => __( 'Save mapping to continue.', 'orbit-import' ) ); }
-				return array( 'ok' => true );
-			case 'run':
-				if ( $status !== Job::STATUS_DRY_RUN && $status !== Job::STATUS_RUNNING ) { return array( 'ok' => false, 'redirect' => 'dry-run', 'message' => __( 'Complete preview to continue.', 'orbit-import' ) ); }
-				return array( 'ok' => true );
-			case 'report':
-				if ( ! in_array( $status, array( Job::STATUS_COMPLETED, Job::STATUS_CANCELLED ), true ) ) { return array( 'ok' => false, 'redirect' => 'run', 'message' => __( 'Finish or cancel the run to view the report.', 'orbit-import' ) ); }
-				return array( 'ok' => true );
-		}
-		return array( 'ok' => false, 'redirect' => 'upload', 'message' => __( 'Unknown step.', 'orbit-import' ) );
 	}
 }

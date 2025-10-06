@@ -14,6 +14,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( ! defined( 'OUI_PAGE_SLUG' ) ) {
+	define( 'OUI_PAGE_SLUG', 'orbit-import' );
+}
+if ( ! defined( 'OUI_CAP' ) ) {
+	define( 'OUI_CAP', 'orbit_import_users' );
+}
+
 if ( ! defined( 'OUI_PLUGIN_FILE' ) ) {
 	define( 'OUI_PLUGIN_FILE', __FILE__ );
 }
@@ -26,9 +33,8 @@ if ( ! defined( 'OUI_PLUGIN_URL' ) ) {
 if ( ! defined( 'OUI_VERSION' ) ) {
 	define( 'OUI_VERSION', '1.1.0' );
 }
-
 if ( ! defined( 'OUI_CAP_IMPORT' ) ) {
-	define( 'OUI_CAP_IMPORT', 'orbit_import_users' );
+	define( 'OUI_CAP_IMPORT', OUI_CAP );
 }
 
 require_once OUI_PLUGIN_DIR . 'includes/Support/class-oui-autoloader.php';
@@ -298,3 +304,16 @@ require_once OUI_PLUGIN_DIR . 'includes/Import/class-oui-runner.php';
 require_once OUI_PLUGIN_DIR . 'includes/Admin/class-oui-admin.php';
 require_once OUI_PLUGIN_DIR . 'includes/Admin/class-oui-jobs-table.php';
 require_once OUI_PLUGIN_DIR . 'includes/Admin/class-oui-settings.php';
+
+// Controllers hooks
+add_action( 'admin_post_oui_import_upload', array( 'OUI\\Admin\\Upload_Controller', 'handle' ) );
+add_action( 'admin_post_oui_import_save_mapping', array( 'OUI\\Admin\\Map_Controller', 'handle' ) );
+add_action( 'admin_post_oui_import_start_run', array( 'OUI\\Admin\\Run_Controller', 'start' ) );
+add_action( 'wp_ajax_oui_import_run_batch', array( 'OUI\\Admin\\Run_Controller', 'batch' ) );
+// keep legacy ajax for compatibility
+add_action( 'wp_ajax_oui_run_batch', array( 'OUI\\Admin\\Run_Controller', 'batch' ) );
+
+// Require controllers
+require_once OUI_PLUGIN_DIR . 'includes/Admin/class-upload-controller.php';
+require_once OUI_PLUGIN_DIR . 'includes/Admin/class-map-controller.php';
+require_once OUI_PLUGIN_DIR . 'includes/Admin/class-run-controller.php';
