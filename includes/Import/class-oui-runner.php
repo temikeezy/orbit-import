@@ -26,7 +26,8 @@ class Runner {
 		if ( empty( $file ) || ! file_exists( $file ) ) { return new \WP_Error( 'no_file', __( 'Job file missing.', 'orbit-import' ) ); }
 		$ext = get_post_meta( $job_id, '_file_ext', true );
 		$gen = self::get_iterator( $file, $ext );
-		$headers = array(); $firstRow = true; $created = 0; $updated = 0; $invalid = 0; $unknown_streams = array(); $rows_total = 0;
+		$headers = array(); $firstRow = true; $created = 0; $updated = 0; $invalid = 0; $unknown_streams = array(); $rows_total = 0; $duplicates = 0;
+		$emails_seen = array(); $start = microtime(true);
 		foreach ( $gen as $row ) {
 			if ( $firstRow ) { $headers = $row; $firstRow = false; continue; }
 			$rows_total++;
@@ -34,6 +35,8 @@ class Runner {
 			$streamsIdx = array_search( 'streams', array_map( 'strtolower', $headers ), true );
 			$email = $emailIdx !== false && isset( $row[ $emailIdx ] ) ? sanitize_email( $row[ $emailIdx ] ) : '';
 			if ( empty( $email ) || ! is_email( $email ) ) { $invalid++; continue; }
+			if ( isset( $emails_seen[ $email ] ) ) { $duplicates++; continue; }
+			$emails_seen[ $email ] = true;
 			if ( email_exists( $email ) ) { $updated++; } else { $created++; }
 			if ( BuddyBoss::is_active() && $streamsIdx !== false && isset( $row[ $streamsIdx ] ) ) {
 				$names = array_filter( array_map( 'trim', explode( '|', (string) $row[ $streamsIdx ] ) ) );
@@ -41,8 +44,10 @@ class Runner {
 				foreach ( $names as $n ) { if ( $n !== '' && ! isset( $map[ $n ] ) ) { $unknown_streams[ $n ] = true; } }
 			}
 		}
-		update_post_meta( $job_id, '_totals', array( 'created' => $created, 'updated' => $updated, 'invalid' => $invalid, 'errors' => $invalid, 'rows_total' => $rows_total ) );
-		return array( 'created' => $created, 'updated' => $updated, 'invalid' => $invalid, 'unknown_streams' => array_keys( $unknown_streams ), 'rows_total' => $rows_total );
+		$elapsed = max( 0.001, microtime(true) - $start );
+		$estimate_per_1k = round( ($elapsed / max(1,$rows_total)) * 1000, 2 );
+		update_post_meta( $job_id, '_totals', array( 'created' => $created, 'updated' => $updated, 'invalid' => $invalid, 'duplicates' => $duplicates, 'errors' => $invalid, 'rows_total' => $rows_total ) );
+		return array( 'created' => $created, 'updated' => $updated, 'invalid' => $invalid, 'duplicates' => $duplicates, 'unknown_streams' => array_keys( $unknown_streams ), 'rows_total' => $rows_total, 'estimate_per_1k' => $estimate_per_1k );
 	}
 
 	public static function run_batch( $job_id ) {

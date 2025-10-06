@@ -22,6 +22,7 @@ class Admin {
 
 		echo '<div class="wrap"><h1>' . esc_html__( 'ORBIT Import', 'orbit-import' ) . '</h1>';
 		$this->stepper( $step, $job_id );
+		echo '<div class="oui-step-content">';
 		switch ( $step ) {
 			case 'map': $this->view( 'map', $job_id ); break;
 			case 'dry-run': $this->view( 'dry-run', $job_id ); break;
@@ -30,19 +31,38 @@ class Admin {
 			case 'upload':
 			default: $this->view( 'upload', $job_id );
 		}
-		echo '</div>';
+		echo '</div></div>';
 	}
 
 	private function stepper( $current, $job_id ) {
-		$steps = array( 'upload' => 'Upload', 'map' => 'Map & Streams', 'dry-run' => 'Dry-Run', 'run' => 'Run', 'report' => 'Report' );
-		echo '<h2 class="nav-tab-wrapper">';
-		foreach ( $steps as $slug => $label ) {
-			$class = 'nav-tab';
-			if ( $slug === $current ) { $class .= ' nav-tab-active'; }
-			$url = $this->step_url( $slug, $job_id );
-			echo '<a class="' . esc_attr( $class ) . '" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
+		$steps = array(
+			array( 'slug' => 'upload',  'label' => __( 'Upload', 'orbit-import' ) ),
+			array( 'slug' => 'map',     'label' => __( 'Map & Streams', 'orbit-import' ) ),
+			array( 'slug' => 'dry-run', 'label' => __( 'Preview Import', 'orbit-import' ) ),
+			array( 'slug' => 'run',     'label' => __( 'Run', 'orbit-import' ) ),
+			array( 'slug' => 'report',  'label' => __( 'Report', 'orbit-import' ) ),
+		);
+		$slugs = array_map( function( $s ){ return $s['slug']; }, $steps );
+		$current_index = max( 0, array_search( $current, $slugs, true ) );
+
+		echo '<ol class="oui-steps">';
+		foreach ( $steps as $i => $s ) {
+			$state = 'disabled';
+			if ( $i < $current_index ) { $state = 'completed'; }
+			elseif ( $i === $current_index ) { $state = 'current'; }
+			$index = $i + 1;
+			$label = $s['label'];
+			$url = $this->step_url( $s['slug'], $job_id );
+			echo '<li class="oui-step oui-' . esc_attr( $state ) . '">';
+			echo '<span class="oui-step-index">' . esc_html( (string) $index ) . '</span>';
+			if ( 'disabled' === $state ) {
+				echo '<span class="oui-step-label">' . esc_html( $label ) . '</span>';
+			} else {
+				echo '<a class="oui-step-label" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
+			}
+			echo '</li>';
 		}
-		echo '</h2>';
+		echo '</ol>';
 	}
 
 	private function view( $name, $job_id ) {
@@ -73,7 +93,7 @@ class Admin {
 				if ( $status !== Job::STATUS_MAPPED ) { return array( 'ok' => false, 'redirect' => 'map', 'message' => __( 'Save mapping to continue.', 'orbit-import' ) ); }
 				return array( 'ok' => true );
 			case 'run':
-				if ( $status !== Job::STATUS_DRY_RUN && $status !== Job::STATUS_RUNNING ) { return array( 'ok' => false, 'redirect' => 'dry-run', 'message' => __( 'Complete dry-run to continue.', 'orbit-import' ) ); }
+				if ( $status !== Job::STATUS_DRY_RUN && $status !== Job::STATUS_RUNNING ) { return array( 'ok' => false, 'redirect' => 'dry-run', 'message' => __( 'Complete preview to continue.', 'orbit-import' ) ); }
 				return array( 'ok' => true );
 			case 'report':
 				if ( ! in_array( $status, array( Job::STATUS_COMPLETED, Job::STATUS_CANCELLED ), true ) ) { return array( 'ok' => false, 'redirect' => 'run', 'message' => __( 'Finish or cancel the run to view the report.', 'orbit-import' ) ); }
