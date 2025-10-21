@@ -1,0 +1,6 @@
+email,first_name,last_name,role
+john.doe@example.com,John,Doe,member
+jane.smith@example.com,Jane,Smith,mod
+admin.user@example.com,Admin,User,admin
+sarah.johnson@example.com,Sarah,Johnson,member
+mike.wilson@example.com,Mike,Wilson,member

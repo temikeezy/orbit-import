@@ -1,120 +1,191 @@
-# ORBIT Bulk User Importer v2.0.0
+# ORBIT Group Member Importer
 
-## Overview
+A WordPress plugin that integrates user import functionality directly into the BuddyBoss/BuddyPress group management interface, specifically within the "Members" section of the group admin area.
 
-The ORBIT Bulk User Importer has been completely rewritten to work on the frontend under BuddyBoss/BuddyPress group tabs. This version removes all backend admin functionality and provides a streamlined, role-based import experience directly within groups.
+## Features
 
-## Key Features
+### 🎯 **Seamless Integration**
+- Integrates directly into BuddyBoss group management interface
+- No separate tabs or backend admin interface required
+- Appears naturally in Group → Manage → Members section
 
-### Frontend Group Integration
-- **Group Tab Integration**: Import functionality is now available as a tab within each BuddyBoss/BuddyPress group
-- **Role-Based Access**: Only users with moderator or administrator roles can access the import functionality
-- **No Backend Required**: All import operations happen on the frontend
+### 👥 **Individual Member Addition**
+- Quick add form with email, first name, last name, and group role
+- Real-time validation and feedback
+- Auto-refresh members list after successful addition
 
-### Import Options
+### 📁 **Bulk Import from CSV**
+- Support for CSV file uploads (up to 10MB)
+- Drag-and-drop file upload interface
+- Column mapping for flexible file formats
+- Batch processing with progress indicators
+- Real-time statistics (created, updated, skipped, errors)
 
-#### 1. Individual User Addition
-- Add single users to groups with a simple form
-- Supports email, first name, last name, and group role assignment
-- Automatically creates new WordPress users if they don't exist
-- Adds existing users to the group if they already exist
+### 🔐 **Role-Based Access Control**
+- Only group administrators and moderators can access import functionality
+- Respects existing BuddyBoss/BuddyPress permission structure
+- Proper security with nonce verification
 
-#### 2. Bulk Import from Files
-- **Supported Formats**: CSV and Excel (.xlsx) files
-- **Drag & Drop Interface**: Modern file upload with drag-and-drop support
-- **Column Mapping**: Flexible column mapping for different file formats
-- **Batch Processing**: Processes large files in small batches to prevent timeouts
-- **Real-time Progress**: Live progress tracking with detailed statistics
-
-### User Management
-- **Smart User Creation**: Creates new WordPress users only when necessary
-- **Existing User Handling**: Adds existing users to groups without creating duplicates
-- **Role Assignment**: Supports member, moderator, and administrator roles
-- **Group Integration**: Seamlessly integrates with BuddyBoss/BuddyPress group functionality
+### 🚀 **Smart User Management**
+- Creates new WordPress users only when necessary
+- Adds existing users to groups without creating duplicates
+- Supports member, moderator, and administrator roles
+- Automatic username generation and secure password creation
 
 ## Installation
 
-1. Upload the plugin files to `/wp-content/plugins/orbit-bulk-user-importer/`
+1. Upload the plugin files to `/wp-content/plugins/orbit-group-member-importer/`
 2. Activate the plugin through the 'Plugins' screen in WordPress
-3. Ensure BuddyBoss or BuddyPress is installed and active
+3. Ensure BuddyBoss Platform or BuddyPress is installed and active
 
 ## Usage
 
 ### Accessing Import Functionality
 
 1. Navigate to any BuddyBoss/BuddyPress group
-2. Look for the "Import Members" tab (only visible to moderators and administrators)
-3. Choose between individual user addition or bulk import
+2. Click the three dots menu (⋯) in the group header
+3. Select "Manage" from the dropdown
+4. Click "Members" in the left sidebar
+5. You'll see the import interface at the top of the page
 
-### Individual User Addition
+### Individual Member Addition
 
-1. Go to the "Add Individual Member" tab
-2. Fill in the user's email address (required)
-3. Optionally add first name, last name, and group role
-4. Click "Add Member"
+1. Fill in the "Quick Add Member" form:
+   - **Email Address** (required)
+   - **First Name** (optional)
+   - **Last Name** (optional)
+   - **Group Role** (member, moderator, or administrator)
+2. Click "Add Member"
+3. The member will be added and the page will refresh to show them
 
-### Bulk Import
+### Bulk Import from CSV
 
-1. Go to the "Bulk Import from File" tab
-2. Download sample files to understand the expected format
-3. Upload your CSV or Excel file using drag-and-drop or file browser
+1. Click "Bulk Import from CSV" to expand the bulk import section
+2. Download the sample CSV file to understand the format
+3. Upload your CSV file using drag-and-drop or file browser
 4. Map your file columns to the required fields (email is required)
 5. Review the file preview
 6. Click "Start Import" to begin processing
+7. Monitor progress and view results
 
-### File Format Requirements
+### CSV File Format
 
-#### Required Fields
-- **Email**: User's email address (required for all imports)
+Your CSV file should have the following columns:
 
-#### Optional Fields
-- **First Name**: User's first name
-- **Last Name**: User's last name
-- **Role**: Group role (member, mod, admin) - defaults to "member"
-
-#### Sample File Structure
 ```csv
 email,first_name,last_name,role
-john@example.com,John,Doe,member
-jane@example.com,Jane,Smith,mod
-admin@example.com,Admin,User,admin
+john.doe@example.com,John,Doe,member
+jane.smith@example.com,Jane,Smith,mod
+admin.user@example.com,Admin,User,admin
 ```
+
+**Required Fields:**
+- `email` - User's email address (required for all imports)
+
+**Optional Fields:**
+- `first_name` - User's first name
+- `last_name` - User's last name
+- `role` - Group role (member, mod, admin) - defaults to "member"
 
 ## Technical Details
 
-### File Processing
-- **Maximum File Size**: 10MB
-- **Batch Size**: 10 rows per batch (configurable)
-- **Supported Formats**: CSV, Excel (.xlsx)
-- **Temporary Storage**: Files are stored temporarily during processing and automatically cleaned up
+### File Structure
+```
+orbit-group-member-importer/
+├── orbit-group-member-importer.php (main plugin file)
+├── includes/
+│   ├── class-group-manager-integration.php
+│   ├── class-file-processor.php
+│   ├── class-user-manager.php
+│   └── class-permission-handler.php
+├── assets/
+│   ├── css/
+│   │   └── group-manager.css
+│   └── js/
+│       └── group-manager.js
+├── templates/
+│   └── members-import-interface.php
+└── samples/
+    └── sample.csv
+```
 
-### Security
-- **Nonce Verification**: All AJAX requests are protected with WordPress nonces
-- **Role-Based Access**: Only moderators and administrators can access import functionality
-- **File Validation**: Strict file type and size validation
-- **Data Sanitization**: All user input is properly sanitized
+### Integration Points
+- Hooks into BuddyBoss group management interface
+- Uses `bp_after_group_admin_content` action
+- Integrates with existing group management styling
+- Maintains compatibility with BuddyBoss theme and plugins
 
-### Performance
-- **Batch Processing**: Large files are processed in small batches to prevent server timeouts
-- **Progress Tracking**: Real-time progress updates during import
-- **Memory Efficient**: Uses generators for large file processing
-- **Automatic Cleanup**: Temporary files are automatically removed
+### Security Features
+- WordPress nonce verification for all AJAX requests
+- Role-based access control (group admins and moderators only)
+- File type and size validation
+- Data sanitization and validation
+- Secure file upload handling
+
+### Performance Features
+- Batch processing for large files (10 rows per batch)
+- AJAX-based operations to prevent page timeouts
+- Memory-efficient file processing
+- Temporary file cleanup
+- Progress tracking for user feedback
 
 ## Compatibility
 
 - **WordPress**: 6.0 or higher
 - **PHP**: 7.4 or higher
-- **BuddyBoss**: Compatible with BuddyBoss platform
+- **BuddyBoss**: Compatible with BuddyBoss Platform
 - **BuddyPress**: Compatible with BuddyPress plugin
 
-## Migration from v1.x
+## Permissions
 
-This is a major version update that completely changes how the plugin works:
+The import functionality is only available to users with the following roles:
 
-- **No Migration Required**: This is a complete rewrite
-- **Backend Interface Removed**: All admin interface functionality has been removed
-- **Frontend Only**: All functionality is now available through group tabs
-- **New File Structure**: Plugin structure has been updated for better organization
+- **Site Administrators** - Can import to any group
+- **Group Administrators** - Can import to groups they administer
+- **Group Moderators** - Can import to groups they moderate
+
+## Error Handling
+
+The plugin provides comprehensive error handling for:
+
+- Invalid file types (only CSV supported)
+- File size limits (10MB maximum)
+- Invalid email addresses
+- Duplicate users
+- Permission violations
+- Network and server errors
+
+## File Processing
+
+- **Maximum File Size**: 10MB
+- **Batch Size**: 10 rows per batch
+- **Supported Formats**: CSV only (Excel support planned for future versions)
+- **Temporary Storage**: Files are stored temporarily during processing and automatically cleaned up
+
+## User Creation Logic
+
+1. **New Users**: Creates WordPress user accounts with provided information
+2. **Existing Users**: Adds existing users to the group without creating duplicates
+3. **Role Assignment**: Supports member, moderator, and administrator roles
+4. **Email Validation**: Ensures valid email addresses before processing
+5. **Duplicate Prevention**: Checks for existing group membership
+
+## Troubleshooting
+
+### Import functionality not appearing
+- Ensure you're a group administrator or moderator
+- Check that BuddyBoss/BuddyPress is active
+- Verify you're in the correct group management section
+
+### File upload issues
+- Check file size (must be under 10MB)
+- Ensure file is in CSV format
+- Verify file has proper headers
+
+### Permission errors
+- Confirm you have the right group role
+- Check if you're logged in
+- Verify group exists and is accessible
 
 ## Support
 
@@ -122,12 +193,20 @@ For support and feature requests, please contact the Ilorin Innovation Hub devel
 
 ## Changelog
 
-### v2.0.0
-- Complete rewrite for frontend group integration
-- Removed all backend admin functionality
-- Added role-based access control
-- Implemented drag-and-drop file upload
-- Added individual user addition functionality
-- Improved batch processing with real-time progress
-- Enhanced security with proper nonce verification
-- Updated file structure and organization
+### v1.0.0
+- Initial release
+- Frontend group management integration
+- Individual member addition
+- Bulk CSV import functionality
+- Role-based access control
+- Comprehensive error handling
+- Responsive design
+- Security features
+
+## License
+
+This plugin is licensed under the GPL v2 or later.
+
+## Credits
+
+Developed by Ilorin Innovation Hub for the ORBIT Network community platform.

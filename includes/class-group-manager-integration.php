@@ -1,0 +1,284 @@
+<?php
+/**
+ * Group Manager Integration Class
+ * 
+ * Handles integration with BuddyBoss group management interface
+ */
+
+// Prevent direct access
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+class OGMI_Group_Manager_Integration {
+    
+    /**
+     * Constructor
+     */
+    public function __construct() {
+        add_action( 'init', array( $this, 'init' ) );
+    }
+    
+    /**
+     * Initialize the integration
+     */
+    public function init() {
+        // Hook into BuddyBoss group management
+        add_action( 'bp_after_group_admin_content', array( $this, 'add_import_interface' ) );
+        add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+        
+        // AJAX handlers
+        add_action( 'wp_ajax_ogmi_add_member', array( $this, 'handle_add_member' ) );
+        add_action( 'wp_ajax_ogmi_upload_file', array( $this, 'handle_file_upload' ) );
+        add_action( 'wp_ajax_ogmi_process_batch', array( $this, 'handle_batch_process' ) );
+        add_action( 'wp_ajax_ogmi_get_file_preview', array( $this, 'handle_get_preview' ) );
+    }
+    
+    /**
+     * Add import interface to group management
+     */
+    public function add_import_interface() {
+        // Only show on members management page
+        if ( ! $this->is_members_management_page() ) {
+            return;
+        }
+        
+        // Check permissions
+        if ( ! $this->user_can_import() ) {
+            return;
+        }
+        
+        // Include the template
+        $template_path = OGMI_PLUGIN_DIR . 'templates/members-import-interface.php';
+        if ( file_exists( $template_path ) ) {
+            include $template_path;
+        }
+    }
+    
+    /**
+     * Check if we're on the members management page
+     */
+    private function is_members_management_page() {
+        // Check if we're in group admin and on members page
+        if ( ! function_exists( 'bp_is_group_admin_page' ) || ! bp_is_group_admin_page() ) {
+            return false;
+        }
+        
+        // Check the current action
+        $current_action = bp_action_variable( 0 );
+        return $current_action === 'members' || empty( $current_action );
+    }
+    
+    /**
+     * Check if current user can import members
+     */
+    private function user_can_import() {
+        if ( ! is_user_logged_in() ) {
+            return false;
+        }
+        
+        $user_id = get_current_user_id();
+        $group_id = bp_get_current_group_id();
+        
+        if ( ! $group_id ) {
+            return false;
+        }
+        
+        // Check if user is site administrator
+        if ( user_can( $user_id, 'administrator' ) ) {
+            return true;
+        }
+        
+        // Check if user is group administrator
+        if ( function_exists( 'groups_is_user_admin' ) && groups_is_user_admin( $user_id, $group_id ) ) {
+            return true;
+        }
+        
+        // Check if user is group moderator
+        if ( function_exists( 'groups_is_user_mod' ) && groups_is_user_mod( $user_id, $group_id ) ) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Enqueue scripts and styles
+     */
+    public function enqueue_scripts() {
+        // Only enqueue on group management pages
+        if ( ! $this->is_members_management_page() || ! $this->user_can_import() ) {
+            return;
+        }
+        
+        // Enqueue styles
+        wp_enqueue_style(
+            'ogmi-group-manager',
+            OGMI_PLUGIN_URL . 'assets/css/group-manager.css',
+            array(),
+            OGMI_VERSION
+        );
+        
+        // Enqueue scripts
+        wp_enqueue_script(
+            'ogmi-group-manager',
+            OGMI_PLUGIN_URL . 'assets/js/group-manager.js',
+            array( 'jquery' ),
+            OGMI_VERSION,
+            true
+        );
+        
+        // Localize script
+        wp_localize_script( 'ogmi-group-manager', 'OGMI', array(
+            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+            'nonce' => wp_create_nonce( 'ogmi_import' ),
+            'groupId' => bp_get_current_group_id(),
+            'strings' => array(
+                'uploading' => __( 'Uploading...', OGMI_TEXT_DOMAIN ),
+                'processing' => __( 'Processing...', OGMI_TEXT_DOMAIN ),
+                'success' => __( 'Success!', OGMI_TEXT_DOMAIN ),
+                'error' => __( 'Error occurred', OGMI_TEXT_DOMAIN ),
+                'selectFile' => __( 'Please select a file', OGMI_TEXT_DOMAIN ),
+                'invalidFile' => __( 'Invalid file type. Please upload CSV or Excel file.', OGMI_TEXT_DOMAIN ),
+                'fileTooLarge' => __( 'File too large', OGMI_TEXT_DOMAIN ),
+                'userAdded' => __( 'User added successfully', OGMI_TEXT_DOMAIN ),
+                'userExists' => __( 'User already exists and has been added to group', OGMI_TEXT_DOMAIN ),
+                'userCreated' => __( 'New user created and added to group', OGMI_TEXT_DOMAIN ),
+                'emailRequired' => __( 'Email address is required', OGMI_TEXT_DOMAIN ),
+                'invalidEmail' => __( 'Please enter a valid email address', OGMI_TEXT_DOMAIN ),
+                'importComplete' => __( 'Import completed successfully!', OGMI_TEXT_DOMAIN ),
+            )
+        ) );
+    }
+    
+    /**
+     * Handle individual member addition
+     */
+    public function handle_add_member() {
+        // Verify nonce
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'ogmi_import' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Security check failed', OGMI_TEXT_DOMAIN ) ) );
+        }
+        
+        // Check permissions
+        if ( ! $this->user_can_import() ) {
+            wp_send_json_error( array( 'message' => __( 'Insufficient permissions', OGMI_TEXT_DOMAIN ) ) );
+        }
+        
+        // Get and validate data
+        $email = sanitize_email( $_POST['email'] );
+        $first_name = sanitize_text_field( $_POST['first_name'] );
+        $last_name = sanitize_text_field( $_POST['last_name'] );
+        $role = sanitize_key( $_POST['role'] );
+        $group_id = (int) $_POST['group_id'];
+        
+        if ( empty( $email ) || ! is_email( $email ) ) {
+            wp_send_json_error( array( 'message' => __( 'Invalid email address', OGMI_TEXT_DOMAIN ) ) );
+        }
+        
+        if ( ! in_array( $role, array( 'member', 'mod', 'admin' ), true ) ) {
+            $role = 'member';
+        }
+        
+        // Use user manager to add member
+        $user_manager = new OGMI_User_Manager();
+        $result = $user_manager->add_member_to_group( $email, $first_name, $last_name, $group_id, $role );
+        
+        if ( is_wp_error( $result ) ) {
+            wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+        }
+        
+        wp_send_json_success( $result );
+    }
+    
+    /**
+     * Handle file upload
+     */
+    public function handle_file_upload() {
+        // Verify nonce
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'ogmi_import' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Security check failed', OGMI_TEXT_DOMAIN ) ) );
+        }
+        
+        // Check permissions
+        if ( ! $this->user_can_import() ) {
+            wp_send_json_error( array( 'message' => __( 'Insufficient permissions', OGMI_TEXT_DOMAIN ) ) );
+        }
+        
+        // Check if file was uploaded
+        if ( empty( $_FILES['file'] ) || ! isset( $_FILES['file']['tmp_name'] ) ) {
+            wp_send_json_error( array( 'message' => __( 'No file uploaded', OGMI_TEXT_DOMAIN ) ) );
+        }
+        
+        $file = $_FILES['file'];
+        $group_id = (int) $_POST['group_id'];
+        
+        // Use file processor to handle upload
+        $file_processor = new OGMI_File_Processor();
+        $result = $file_processor->process_upload( $file, $group_id );
+        
+        if ( is_wp_error( $result ) ) {
+            wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+        }
+        
+        wp_send_json_success( $result );
+    }
+    
+    /**
+     * Handle batch processing
+     */
+    public function handle_batch_process() {
+        // Verify nonce
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'ogmi_import' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Security check failed', OGMI_TEXT_DOMAIN ) ) );
+        }
+        
+        // Check permissions
+        if ( ! $this->user_can_import() ) {
+            wp_send_json_error( array( 'message' => __( 'Insufficient permissions', OGMI_TEXT_DOMAIN ) ) );
+        }
+        
+        $file_id = sanitize_text_field( $_POST['file_id'] );
+        $mapping = (array) $_POST['mapping'];
+        $batch_size = (int) $_POST['batch_size'];
+        $offset = (int) $_POST['offset'];
+        $group_id = (int) $_POST['group_id'];
+        
+        // Use file processor to process batch
+        $file_processor = new OGMI_File_Processor();
+        $result = $file_processor->process_batch( $file_id, $mapping, $batch_size, $offset, $group_id );
+        
+        if ( is_wp_error( $result ) ) {
+            wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+        }
+        
+        wp_send_json_success( $result );
+    }
+    
+    /**
+     * Handle get file preview
+     */
+    public function handle_get_preview() {
+        // Verify nonce
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'ogmi_import' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Security check failed', OGMI_TEXT_DOMAIN ) ) );
+        }
+        
+        // Check permissions
+        if ( ! $this->user_can_import() ) {
+            wp_send_json_error( array( 'message' => __( 'Insufficient permissions', OGMI_TEXT_DOMAIN ) ) );
+        }
+        
+        $file_id = sanitize_text_field( $_POST['file_id'] );
+        
+        // Use file processor to get preview
+        $file_processor = new OGMI_File_Processor();
+        $result = $file_processor->get_file_preview( $file_id );
+        
+        if ( is_wp_error( $result ) ) {
+            wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+        }
+        
+        wp_send_json_success( $result );
+    }
+}
