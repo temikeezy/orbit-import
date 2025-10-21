@@ -73,6 +73,9 @@ class ORBIT_Group_Member_Importer {
         if ( class_exists( 'OGMI_Group_Manager_Integration' ) ) {
             new OGMI_Group_Manager_Integration();
         }
+        
+        // Schedule cleanup of expired files
+        add_action( 'wp_loaded', array( $this, 'schedule_cleanup' ) );
     }
     
     /**
@@ -125,6 +128,27 @@ class ORBIT_Group_Member_Importer {
     }
     
     /**
+     * Schedule cleanup of expired files
+     */
+    public function schedule_cleanup() {
+        if ( ! wp_next_scheduled( 'ogmi_cleanup_expired_files' ) ) {
+            wp_schedule_event( time(), 'hourly', 'ogmi_cleanup_expired_files' );
+        }
+        
+        add_action( 'ogmi_cleanup_expired_files', array( $this, 'cleanup_expired_files' ) );
+    }
+    
+    /**
+     * Clean up expired files
+     */
+    public function cleanup_expired_files() {
+        if ( class_exists( 'OGMI_File_Processor' ) ) {
+            $file_processor = new OGMI_File_Processor();
+            $file_processor->cleanup_expired_files();
+        }
+    }
+    
+    /**
      * Plugin deactivation
      */
     public function deactivate() {
@@ -140,6 +164,9 @@ class ORBIT_Group_Member_Importer {
                 }
             }
         }
+        
+        // Clear scheduled cleanup
+        wp_clear_scheduled_hook( 'ogmi_cleanup_expired_files' );
         
         // Flush rewrite rules
         flush_rewrite_rules();

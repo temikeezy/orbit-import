@@ -33,8 +33,8 @@ class OGMI_Group_Manager_Integration {
         add_action( 'bp_before_group_members_list', array( $this, 'add_import_interface_alternative' ) );
         add_action( 'bp_after_group_members_list', array( $this, 'add_import_interface_alternative' ) );
         
-        // Add debug hook to see what's happening
-        add_action( 'wp_footer', array( $this, 'debug_info' ) );
+        // Add debug hook to see what's happening (disabled for production)
+        // add_action( 'wp_footer', array( $this, 'debug_info' ) );
         
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
         
@@ -303,6 +303,11 @@ class OGMI_Group_Manager_Integration {
         
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+        }
+        
+        // If import is complete, clean up the file
+        if ( isset( $result['has_more'] ) && ! $result['has_more'] ) {
+            $file_processor->cleanup_file( $file_id );
         }
         
         wp_send_json_success( $result );

@@ -23,7 +23,7 @@ class OGMI_File_Processor {
     const ALLOWED_TYPES = array( 'csv', 'xlsx' );
     
     /**
-     * Process file upload
+     * Process file upload using WordPress upload functions
      */
     public function process_upload( $file, $group_id ) {
         // Validate file
@@ -32,42 +32,48 @@ class OGMI_File_Processor {
             return $validation;
         }
         
-        // Create upload directory
-        $upload_dir = $this->get_upload_directory();
-        if ( is_wp_error( $upload_dir ) ) {
-            return $upload_dir;
+        // Use WordPress upload handling
+        if ( ! function_exists( 'wp_handle_upload' ) ) {
+            require_once( ABSPATH . 'wp-admin/includes/file.php' );
         }
         
-        // Generate unique filename
+        // Configure upload settings
+        $upload_overrides = array(
+            'test_form' => false, // Disable form validation for AJAX uploads
+            'test_size' => true,  // Test file size
+            'test_upload' => true // Test upload
+        );
+        
+        // Handle the upload
+        $uploaded_file = wp_handle_upload( $file, $upload_overrides );
+        
+        if ( isset( $uploaded_file['error'] ) ) {
+            return new WP_Error( 'upload_failed', $uploaded_file['error'] );
+        }
+        
+        $file_path = $uploaded_file['file'];
         $file_extension = strtolower( pathinfo( $file['name'], PATHINFO_EXTENSION ) );
-        $unique_filename = wp_generate_uuid4() . '.' . $file_extension;
-        $target_path = $upload_dir . $unique_filename;
-        
-        // Move uploaded file
-        if ( ! move_uploaded_file( $file['tmp_name'], $target_path ) ) {
-            return new WP_Error( 'upload_failed', __( 'Failed to move uploaded file', OGMI_TEXT_DOMAIN ) );
-        }
         
         // Parse file and extract headers
-        $headers = $this->extract_headers( $target_path, $file_extension );
+        $headers = $this->extract_headers( $file_path, $file_extension );
         if ( is_wp_error( $headers ) ) {
-            unlink( $target_path ); // Clean up file
+            unlink( $file_path ); // Clean up file
             return $headers;
         }
         
         // Get preview rows
-        $preview_rows = $this->get_preview_rows( $target_path, $file_extension, 5 );
+        $preview_rows = $this->get_preview_rows( $file_path, $file_extension, 5 );
         
         // Store file info in transient
         $file_id = wp_generate_uuid4();
         $file_data = array(
-            'file_path' => $target_path,
+            'file_path' => $file_path,
             'file_extension' => $file_extension,
             'group_id' => $group_id,
             'user_id' => get_current_user_id(),
             'created' => time(),
             'headers' => $headers,
-            'total_rows' => $this->count_total_rows( $target_path, $file_extension )
+            'total_rows' => $this->count_total_rows( $file_path, $file_extension )
         );
         
         set_transient( 'ogmi_file_' . $file_id, $file_data, HOUR_IN_SECONDS );
@@ -108,19 +114,6 @@ class OGMI_File_Processor {
         return true;
     }
     
-    /**
-     * Get upload directory
-     */
-    private function get_upload_directory() {
-        $upload_dir = wp_upload_dir();
-        $import_dir = trailingslashit( $upload_dir['basedir'] ) . 'orbit-group-import/';
-        
-        if ( ! wp_mkdir_p( $import_dir ) ) {
-            return new WP_Error( 'directory_creation_failed', __( 'Failed to create upload directory', OGMI_TEXT_DOMAIN ) );
-        }
-        
-        return $import_dir;
-    }
     
     /**
      * Extract headers from file
@@ -392,9 +385,36 @@ class OGMI_File_Processor {
     public function cleanup_file( $file_id ) {
         $file_data = get_transient( 'ogmi_file_' . $file_id );
         if ( $file_data && isset( $file_data['file_path'] ) && file_exists( $file_data['file_path'] ) ) {
+            // Delete the file
             unlink( $file_data['file_path'] );
         }
         
+        // Delete the transient
         delete_transient( 'ogmi_file_' . $file_id );
+    }
+    
+    /**
+     * Clean up all expired files
+     */
+    public function cleanup_expired_files() {
+        global $wpdb;
+        
+        // Get all transients that match our pattern
+        $transients = $wpdb->get_results(
+            "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE '_transient_ogmi_file_%'"
+        );
+        
+        foreach ( $transients as $transient ) {
+            $file_id = str_replace( '_transient_ogmi_file_', '', $transient->option_name );
+            $file_data = get_transient( 'ogmi_file_' . $file_id );
+            
+            if ( $file_data && isset( $file_data['file_path'] ) && file_exists( $file_data['file_path'] ) ) {
+                // Check if file is older than 1 hour
+                if ( time() - $file_data['created'] > HOUR_IN_SECONDS ) {
+                    unlink( $file_data['file_path'] );
+                    delete_transient( 'ogmi_file_' . $file_id );
+                }
+            }
+        }
     }
 }
