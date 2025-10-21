@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: ORBIT Bulk User Importer
- * Description: Bulk-import users and assign them to BuddyBoss/BuddyPress Streams (Groups) with dry-run, mapping, batching, resumable jobs, and role assignment.
- * Version: 1.1.0
+ * Description: Frontend bulk import users and assign them to BuddyBoss/BuddyPress Groups. Add individual users or import from CSV/Excel files directly from group tabs. Role-based access for moderators and above.
+ * Version: 2.0.0
  * Author: Ilorin Innovation Hub
  * Text Domain: orbit-import
  * Domain Path: /languages
@@ -31,7 +31,7 @@ if ( ! defined( 'OUI_PLUGIN_URL' ) ) {
 	define( 'OUI_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 }
 if ( ! defined( 'OUI_VERSION' ) ) {
-	define( 'OUI_VERSION', '1.1.0' );
+	define( 'OUI_VERSION', '2.0.0' );
 }
 if ( ! defined( 'OUI_CAP_IMPORT' ) ) {
 	define( 'OUI_CAP_IMPORT', OUI_CAP );
@@ -66,230 +66,26 @@ add_action( 'init', static function () {
 	}
 } );
 
-add_action( 'admin_menu', static function () {
-	if ( ! current_user_can( OUI_CAP_IMPORT ) ) {
-		return;
-	}
-	add_users_page(
-		__( 'ORBIT Import', 'orbit-import' ),
-		__( 'ORBIT Import', 'orbit-import' ),
-		OUI_CAP_IMPORT,
-		'orbit-import',
-		static function () {
-			if ( class_exists( 'OUI\\Admin\\Admin' ) ) {
-				( new OUI\Admin\Admin() )->render();
-			} else {
-				echo '<div class="wrap"><h1>' . esc_html__( 'ORBIT Import', 'orbit-import' ) . '</h1><p>' . esc_html__( 'Admin module not loaded.', 'orbit-import' ) . '</p></div>';
-			}
-		}
-	);
-	add_management_page(
-		__( 'ORBIT Import', 'orbit-import' ),
-		__( 'ORBIT Import', 'orbit-import' ),
-		OUI_CAP_IMPORT,
-		'orbit-import-tools',
-		static function () {
-			if ( class_exists( 'OUI\\Admin\\Admin' ) ) {
-				( new OUI\Admin\Admin() )->render();
-			} else {
-				echo '<div class="wrap"><h1>' . esc_html__( 'ORBIT Import', 'orbit-import' ) . '</h1><p>' . esc_html__( 'Admin module not loaded.', 'orbit-import' ) . '</p></div>';
-			}
-		}
-	);
-
-	add_submenu_page(
-		'users.php',
-		__( 'ORBIT Import Settings', 'orbit-import' ),
-		__( 'ORBIT Import Settings', 'orbit-import' ),
-		OUI_CAP_IMPORT,
-		'oui-settings',
-		static function () {
-			if ( class_exists( 'OUI\\Admin\\Settings' ) ) {
-				OUI\Admin\Settings::page();
-			}
-		}
-	);
-} );
-
-add_action( 'admin_init', static function () {
-	if ( class_exists( 'OUI\\Admin\\Settings' ) ) {
-		OUI\Admin\Settings::register();
+// Frontend group integration - no more backend admin interface
+add_action( 'init', static function () {
+	if ( class_exists( 'OUI\\Frontend\\Group_Integration' ) ) {
+		new OUI\Frontend\Group_Integration();
 	}
 } );
 
-add_action( 'admin_enqueue_scripts', static function () {
-	$page = isset( $_GET['page'] ) ? sanitize_key( $_GET['page'] ) : '';
-	if ( ! in_array( $page, array( 'orbit-import', 'orbit-import-tools', 'oui-settings' ), true ) ) {
-		return;
-	}
-	wp_enqueue_style( 'oui-admin', OUI_PLUGIN_URL . 'assets/css/admin.css', array(), OUI_VERSION );
-	wp_enqueue_script( 'oui-admin', OUI_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery' ), OUI_VERSION, true );
-	wp_localize_script( 'oui-admin', 'OUI', array(
-		'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-		'nonce'   => wp_create_nonce( 'oui_admin' ),
-	) );
-} );
+// Admin settings removed - frontend only
 
-add_action( 'wp_ajax_oui_upload_csv', static function () {
-	if ( ! current_user_can( OUI_CAP_IMPORT ) || ! check_ajax_referer( 'oui_admin', 'nonce', false ) ) {
-		wp_send_json_error( array( 'message' => __( 'Unauthorized', 'orbit-import' ) ), 403 );
-	}
-	if ( empty( $_FILES['file'] ) || ! isset( $_FILES['file']['tmp_name'] ) ) {
-		wp_send_json_error( array( 'message' => __( 'No file uploaded', 'orbit-import' ) ), 400 );
-	}
-	$file = $_FILES['file'];
-	$size = isset( $file['size'] ) ? (int) $file['size'] : 0;
-	$max  = apply_filters( 'oui_max_csv_size', 10 * 1024 * 1024 );
-	if ( $size <= 0 || $size > $max ) {
-		wp_send_json_error( array( 'message' => __( 'File too large', 'orbit-import' ) ), 400 );
-	}
-	$ext = strtolower( pathinfo( $file['name'], PATHINFO_EXTENSION ) );
-	if ( ! in_array( $ext, array( 'csv', 'xlsx' ), true ) ) {
-		wp_send_json_error( array( 'message' => __( 'Invalid file type', 'orbit-import' ) ), 400 );
-	}
-	$uploads = wp_upload_dir();
-	$dir = trailingslashit( $uploads['basedir'] ) . 'orbit-import/';
-	wp_mkdir_p( $dir );
-	$target = $dir . wp_unique_filename( $dir, sanitize_file_name( $file['name'] ) );
-	if ( ! move_uploaded_file( $file['tmp_name'], $target ) ) {
-		wp_send_json_error( array( 'message' => __( 'Could not save file', 'orbit-import' ) ), 500 );
-	}
-	$hash = md5_file( $target );
-	$job_id = wp_insert_post( array(
-		'post_type' => 'orbit_import_job',
-		'post_status' => 'publish',
-		'post_title' => 'Import ' . current_time( 'mysql' ),
-	), true );
-	if ( is_wp_error( $job_id ) ) {
-		wp_send_json_error( array( 'message' => $job_id->get_error_message() ), 500 );
-	}
-	$defaults = OUI\Import\Job::default_meta();
-	$defaults['_file_path'] = $target;
-	$defaults['_file_hash'] = $hash;
-	$defaults['_processed'] = 0;
-	$defaults['_file_ext'] = $ext;
-	// Extract headers
-	$headers = array();
-	if ( 'csv' === $ext ) {
-		$dialect = OUI\Support\CSV::detect_dialect( $target );
-		$defaults['_csv_dialect'] = $dialect;
-		$gen = OUI\Support\CSV::iterate( $target, $dialect['delimiter'], $dialect['enclosure'], $dialect['escape'] );
-		foreach ( $gen as $row ) { $headers = is_array( $row ) ? $row : array(); break; }
-	} else {
-		$gen = OUI\Support\XLSX::iterate( $target );
-		foreach ( $gen as $row ) { $headers = is_array( $row ) ? $row : array(); break; }
-	}
-	$headers = array_filter( array_map( 'strval', $headers ) );
-	foreach ( $defaults as $k => $v ) { update_post_meta( $job_id, $k, $v ); }
-	OUI\Import\Job::set_headers( $job_id, $headers );
-	OUI\Import\Job::set_status( $job_id, OUI\Import\Job::STATUS_CREATED );
-	$map_url = add_query_arg( array( 'page' => 'orbit-import', 'step' => 'map', 'job' => (int) $job_id ), admin_url( 'users.php' ) );
-	wp_send_json_success( array( 'job_id' => (int) $job_id, 'redirect' => $map_url ) );
-} );
+// Admin scripts removed - frontend only
 
-add_action( 'admin_post_oui_upload_csv', static function () {
-	if ( ! current_user_can( OUI_CAP_IMPORT ) || ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'oui_admin' ) ) {
-		wp_die( esc_html__( 'Unauthorized', 'orbit-import' ) );
-	}
-	if ( empty( $_FILES['file'] ) || ! isset( $_FILES['file']['tmp_name'] ) ) {
-		wp_die( esc_html__( 'No file uploaded', 'orbit-import' ) );
-	}
-	$file = $_FILES['file'];
-	$size = isset( $file['size'] ) ? (int) $file['size'] : 0;
-	$max  = apply_filters( 'oui_max_csv_size', 10 * 1024 * 1024 );
-	if ( $size <= 0 || $size > $max ) {
-		wp_die( esc_html__( 'File too large', 'orbit-import' ) );
-	}
-	$ext = strtolower( pathinfo( $file['name'], PATHINFO_EXTENSION ) );
-	if ( ! in_array( $ext, array( 'csv', 'xlsx' ), true ) ) {
-		wp_die( esc_html__( 'Invalid file type', 'orbit-import' ) );
-	}
-	$uploads = wp_upload_dir();
-	$dir = trailingslashit( $uploads['basedir'] ) . 'orbit-import/';
-	wp_mkdir_p( $dir );
-	$target = $dir . wp_unique_filename( $dir, sanitize_file_name( $file['name'] ) );
-	if ( ! move_uploaded_file( $file['tmp_name'], $target ) ) {
-		wp_die( esc_html__( 'Could not save file', 'orbit-import' ) );
-	}
-	$hash = md5_file( $target );
-	$job_id = wp_insert_post( array(
-		'post_type' => 'orbit_import_job',
-		'post_status' => 'publish',
-		'post_title' => 'Import ' . current_time( 'mysql' ),
-	), true );
-	if ( is_wp_error( $job_id ) ) {
-		wp_die( esc_html( $job_id->get_error_message() ) );
-	}
-	$defaults = OUI\Import\Job::default_meta();
-	$defaults['_file_path'] = $target;
-	$defaults['_file_hash'] = $hash;
-	$defaults['_processed'] = 0;
-	$defaults['_file_ext'] = $ext;
-	$headers = array();
-	if ( 'csv' === $ext ) {
-		$dialect = OUI\Support\CSV::detect_dialect( $target );
-		$defaults['_csv_dialect'] = $dialect;
-		$gen = OUI\Support\CSV::iterate( $target, $dialect['delimiter'], $dialect['enclosure'], $dialect['escape'] );
-		foreach ( $gen as $row ) { $headers = is_array( $row ) ? $row : array(); break; }
-	} else {
-		$gen = OUI\Support\XLSX::iterate( $target );
-		foreach ( $gen as $row ) { $headers = is_array( $row ) ? $row : array(); break; }
-	}
-	$headers = array_filter( array_map( 'strval', $headers ) );
-	foreach ( $defaults as $k => $v ) { update_post_meta( $job_id, $k, $v ); }
-	OUI\Import\Job::set_headers( $job_id, $headers );
-	OUI\Import\Job::set_status( $job_id, OUI\Import\Job::STATUS_CREATED );
-	$map_url = add_query_arg( array( 'page' => 'orbit-import', 'step' => 'map', 'job' => (int) $job_id ), admin_url( 'users.php' ) );
-	wp_safe_redirect( $map_url );
-	exit;
-} );
+// Old admin AJAX handlers removed - using frontend handlers now
 
-add_action( 'wp_ajax_oui_save_mapping', static function(){
-	if ( ! current_user_can( OUI_CAP_IMPORT ) || ! check_ajax_referer( 'oui_admin', 'nonce', false ) ) {
-		wp_send_json_error( array( 'message' => __( 'Unauthorized', 'orbit-import' ) ), 403 );
-	}
-	$job_id = isset( $_POST['job_id'] ) ? (int) $_POST['job_id'] : 0;
-	if ( $job_id <= 0 ) { wp_send_json_error( array( 'message' => __( 'Invalid job', 'orbit-import' ) ), 400 ); }
-	$mapping = isset( $_POST['mapping'] ) ? (array) $_POST['mapping'] : array();
-	$bulk = isset( $_POST['bulk'] ) ? (array) $_POST['bulk'] : array();
-	$clean_mapping = array(); foreach ( $mapping as $k => $v ) { $clean_mapping[ sanitize_key( $k ) ] = sanitize_text_field( (string) $v ); }
-	if ( empty( $clean_mapping['email'] ) ) { wp_send_json_error( array( 'message' => __( 'Email mapping is required.', 'orbit-import' ) ), 400 ); }
-	$settings = get_option( 'oui_settings', array() ); $require_streams = ! empty( $settings['require_streams'] );
-	$bulk_ids = array(); if ( isset( $bulk['ids'] ) && is_array( $bulk['ids'] ) ) { foreach ( $bulk['ids'] as $id ) { $id = (int) $id; if ( $id > 0 ) { $bulk_ids[] = $id; } } }
-	if ( $require_streams && empty( $bulk_ids ) && empty( $clean_mapping['streams'] ) ) {
-		wp_send_json_error( array( 'message' => __( 'At least CSV streams or bulk streams must be selected.', 'orbit-import' ) ), 400 );
-	}
-	update_post_meta( $job_id, '_mapping', $clean_mapping );
-	update_post_meta( $job_id, '_bulk_stream_ids', $bulk_ids );
-	update_post_meta( $job_id, '_bulk_stream_role', isset( $bulk['role'] ) ? sanitize_key( $bulk['role'] ) : 'member' );
-	$mode = isset( $bulk['mode'] ) ? sanitize_key( $bulk['mode'] ) : 'csv_only'; if ( ! in_array( $mode, array( 'csv_only', 'append_bulk', 'replace_with_bulk' ), true ) ) { $mode = 'csv_only'; }
-	update_post_meta( $job_id, '_stream_assign_mode', $mode );
-	update_post_meta( $job_id, '_bulk_stream_apply_existing_only', ! empty( $bulk['existing_only'] ) ? 1 : 0 );
-	OUI\Import\Job::set_status( $job_id, OUI\Import\Job::STATUS_MAPPED );
-	$dry_url = add_query_arg( array( 'page' => 'orbit-import', 'step' => 'dry-run', 'job' => (int) $job_id ), admin_url( 'users.php' ) );
-	wp_send_json_success( array( 'ok' => true, 'redirect' => $dry_url ) );
-} );
+// Old admin post handlers removed - using frontend handlers now
 
-add_action( 'wp_ajax_oui_dry_run', static function(){
-	if ( ! current_user_can( OUI_CAP_IMPORT ) || ! check_ajax_referer( 'oui_admin', 'nonce', false ) ) { wp_send_json_error( array( 'message' => __( 'Unauthorized', 'orbit-import' ) ), 403 ); }
-	$job_id = isset( $_POST['job_id'] ) ? (int) $_POST['job_id'] : 0; $result = OUI\Import\Runner::dry_run( $job_id );
-	if ( is_wp_error( $result ) ) { wp_send_json_error( array( 'message' => $result->get_error_message() ), 400 ); }
-	OUI\Import\Job::set_status( $job_id, OUI\Import\Job::STATUS_DRY_RUN );
-	wp_send_json_success( $result );
-} );
+// Old mapping AJAX handler removed - using frontend handlers now
 
-add_action( 'wp_ajax_oui_run_batch', static function () {
-	if ( ! current_user_can( OUI_CAP_IMPORT ) || ! check_ajax_referer( 'oui_admin', 'nonce', false ) ) { wp_send_json_error( array( 'message' => __( 'Unauthorized', 'orbit-import' ) ), 403 ); }
-	if ( class_exists( 'OUI\\Import\\Runner' ) ) {
-		$job_id = isset( $_POST['job_id'] ) ? (int) $_POST['job_id'] : 0;
-		if ( OUI\Import\Job::get_status( $job_id ) !== OUI\Import\Job::STATUS_RUNNING ) { OUI\Import\Job::set_status( $job_id, OUI\Import\Job::STATUS_RUNNING ); }
-		$result = OUI\Import\Runner::run_batch( $job_id );
-		if ( is_wp_error( $result ) ) { wp_send_json_error( array( 'message' => $result->get_error_message() ), 400 ); }
-		if ( isset( $result['percent'] ) && (int) $result['percent'] >= 100 ) { OUI\Import\Job::set_status( $job_id, OUI\Import\Job::STATUS_COMPLETED ); }
-		wp_send_json_success( $result );
-	}
-	wp_send_json_error( array( 'message' => __( 'Runner not available', 'orbit-import' ) ), 500 );
-} );
+// Old dry run AJAX handler removed - using frontend handlers now
+
+// Old batch run AJAX handler removed - using frontend handlers now
 
 require_once OUI_PLUGIN_DIR . 'includes/Support/class-oui-security.php';
 require_once OUI_PLUGIN_DIR . 'includes/Support/class-oui-utils.php';
@@ -305,15 +101,5 @@ require_once OUI_PLUGIN_DIR . 'includes/Admin/class-oui-admin.php';
 require_once OUI_PLUGIN_DIR . 'includes/Admin/class-oui-jobs-table.php';
 require_once OUI_PLUGIN_DIR . 'includes/Admin/class-oui-settings.php';
 
-// Controllers hooks
-add_action( 'admin_post_oui_import_upload', array( 'OUI\\Admin\\Upload_Controller', 'handle' ) );
-add_action( 'admin_post_oui_import_save_mapping', array( 'OUI\\Admin\\Map_Controller', 'handle' ) );
-add_action( 'admin_post_oui_import_start_run', array( 'OUI\\Admin\\Run_Controller', 'start' ) );
-add_action( 'wp_ajax_oui_import_run_batch', array( 'OUI\\Admin\\Run_Controller', 'batch' ) );
-// keep legacy ajax for compatibility
-add_action( 'wp_ajax_oui_run_batch', array( 'OUI\\Admin\\Run_Controller', 'batch' ) );
-
-// Require controllers
-require_once OUI_PLUGIN_DIR . 'includes/Admin/class-upload-controller.php';
-require_once OUI_PLUGIN_DIR . 'includes/Admin/class-map-controller.php';
-require_once OUI_PLUGIN_DIR . 'includes/Admin/class-run-controller.php';
+// Frontend integration
+require_once OUI_PLUGIN_DIR . 'includes/Frontend/class-oui-group-integration.php';
