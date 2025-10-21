@@ -17,7 +17,14 @@ class Group_Integration {
     public function init() {
         // Hook into BuddyBoss/BuddyPress group navigation
         if ( BuddyBoss::is_active() ) {
-            add_action( 'bp_setup_nav', array( $this, 'add_group_import_tab' ), 100 );
+            // Add import functionality to Members tab instead of separate tab
+            add_action( 'bp_groups_members_template', array( $this, 'add_import_to_members_tab' ) );
+            add_action( 'bp_after_group_members_list', array( $this, 'add_import_to_members_tab' ) );
+            add_action( 'bp_group_members_list_item_action', array( $this, 'add_import_to_members_tab' ) );
+            
+            // Also try the template action for BuddyBoss
+            add_action( 'bp_template_content', array( $this, 'maybe_add_import_to_members' ) );
+            
             add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
             
             // AJAX handlers for frontend
@@ -25,31 +32,77 @@ class Group_Integration {
             add_action( 'wp_ajax_oui_frontend_add_user', array( $this, 'handle_add_user' ) );
             add_action( 'wp_ajax_oui_frontend_process_batch', array( $this, 'handle_batch_process' ) );
             add_action( 'wp_ajax_oui_frontend_get_preview', array( $this, 'handle_get_preview' ) );
+        } else {
+            // Debug: Add admin notice if BuddyBoss is not active
+            add_action( 'admin_notices', array( $this, 'buddyboss_not_active_notice' ) );
         }
     }
     
-    public function add_group_import_tab() {
-        // Only add tab if user has moderator or above role
-        if ( ! $this->user_can_import() ) {
+    public function add_import_to_members_tab() {
+        // Check if we're in the right context
+        if ( ! $this->is_members_tab_context() ) {
             return;
         }
         
         $group_id = bp_get_current_group_id();
-        if ( ! $group_id ) {
+        if ( ! $group_id || ! $this->user_can_import( $group_id ) ) {
             return;
         }
         
-        // Add the import tab to group navigation
-        bp_core_new_subnav_item( array(
-            'name'            => __( 'Import Members', 'orbit-import' ),
-            'slug'            => 'import-members',
-            'parent_slug'     => bp_get_current_group_slug(),
-            'parent_url'      => bp_get_group_permalink(),
-            'screen_function' => array( $this, 'import_screen' ),
-            'position'        => 50,
-            'user_has_access' => $this->user_can_import(),
-            'item_css_id'     => 'group-import-members'
-        ) );
+        // Add import interface to members tab
+        $this->render_import_interface();
+    }
+    
+    public function maybe_add_import_to_members() {
+        // Check if we're in the members tab context
+        if ( ! $this->is_members_tab_context() ) {
+            return;
+        }
+        
+        $group_id = bp_get_current_group_id();
+        if ( ! $group_id || ! $this->user_can_import( $group_id ) ) {
+            return;
+        }
+        
+        // Add import interface
+        $this->render_import_interface();
+    }
+    
+    private function is_members_tab_context() {
+        // Check if we're in a group and on the members tab
+        if ( ! function_exists( 'bp_is_group' ) || ! bp_is_group() ) {
+            return false;
+        }
+        
+        // Check if we're on the members tab
+        $current_action = bp_current_action();
+        $is_members_tab = ( $current_action === 'members' || $current_action === 'all-members' || empty( $current_action ) );
+        
+        // Also check the URL to be sure
+        $is_members_url = strpos( $_SERVER['REQUEST_URI'], '/members/' ) !== false;
+        
+        return $is_members_tab || $is_members_url;
+    }
+    
+    private function render_import_interface() {
+        // Only render once per page load
+        static $rendered = false;
+        if ( $rendered ) {
+            return;
+        }
+        $rendered = true;
+        
+        // Include the import interface
+        $template_path = plugin_dir_path( dirname( __DIR__ ) ) . 'includes/Frontend/views/members-import.php';
+        if ( file_exists( $template_path ) ) {
+            include $template_path;
+        } else {
+            // Fallback to the main template
+            $template_path = plugin_dir_path( dirname( __DIR__ ) ) . 'includes/Frontend/views/group-import.php';
+            if ( file_exists( $template_path ) ) {
+                include $template_path;
+            }
+        }
     }
     
     public function import_screen() {
@@ -290,6 +343,14 @@ class Group_Integration {
             'headers' => $file_data['headers'],
             'file_ext' => $file_data['file_ext']
         ) );
+    }
+    
+    public function buddyboss_not_active_notice() {
+        if ( current_user_can( 'administrator' ) ) {
+            echo '<div class="notice notice-warning"><p>';
+            echo '<strong>ORBIT Import:</strong> BuddyBoss or BuddyPress is not active. The import functionality requires one of these plugins to be installed and activated.';
+            echo '</p></div>';
+        }
     }
     
     private function user_can_import( $group_id = null ) {

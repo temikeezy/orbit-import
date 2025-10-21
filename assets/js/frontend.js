@@ -12,11 +12,12 @@
         },
         
         bindEvents: function() {
-            // Tab switching
+            // Tab switching (for full tab interface)
             $(document).on('click', '.oui-tab-button', this.switchTab);
             
-            // Individual user form
+            // Individual user forms (both full and quick add)
             $(document).on('submit', '#oui-add-user-form', this.handleAddUser);
+            $(document).on('submit', '#oui-quick-add-form', this.handleQuickAddUser);
             
             // File upload
             this.initDropzone();
@@ -26,6 +27,11 @@
             $(document).on('change', '.oui-mapping-item select', this.updateMapping);
             $(document).on('click', '#oui-start-import', this.startImport);
             $(document).on('click', '#oui-start-new-import', this.resetImport);
+            
+            // Members tab specific events
+            $(document).on('click', '#oui-toggle-bulk-import', this.toggleBulkImport);
+            $(document).on('click', '#oui-cancel-import', this.cancelImport);
+            $(document).on('click', '#oui-close-import', this.closeImport);
         },
         
         initTabs: function() {
@@ -145,6 +151,11 @@
                         OUI_Frontend.currentFileId = response.data.file_id;
                         OUI_Frontend.populateMappingOptions(response.data.headers);
                         OUI_Frontend.showFilePreview(response.data.preview_rows, response.data.headers);
+                        
+                        // Show mapping section (for Members tab interface)
+                        $('#oui-mapping-section').show();
+                        
+                        // Also show mapping step (for full tab interface)
                         OUI_Frontend.showStep('mapping-step');
                     } else {
                         OUI_Frontend.showError(response.data.message || OUI_Frontend.strings.error);
@@ -230,7 +241,14 @@
             }
             
             OUI_Frontend.isProcessing = true;
+            
+            // Show progress section (for Members tab interface)
+            $('#oui-progress-section').show();
+            $('#oui-mapping-section').hide();
+            
+            // Also show processing step (for full tab interface)
             OUI_Frontend.showStep('processing-step');
+            
             OUI_Frontend.resetStats();
             OUI_Frontend.processBatch(0);
         },
@@ -284,6 +302,12 @@
         
         completeImport: function(finalData) {
             OUI_Frontend.isProcessing = false;
+            
+            // Show results section (for Members tab interface)
+            $('#oui-results-section').show();
+            $('#oui-progress-section').hide();
+            
+            // Also show results step (for full tab interface)
             OUI_Frontend.showStep('results-step');
             
             // Update final stats
@@ -349,6 +373,82 @@
             });
         },
         
+        handleQuickAddUser: function(e) {
+            e.preventDefault();
+            
+            var $form = $(this);
+            var $button = $form.find('button[type="submit"]');
+            var $result = $('#oui-quick-result');
+            
+            $button.prop('disabled', true).text(OUI_Frontend.strings.processing);
+            $result.hide();
+            
+            $.ajax({
+                url: OUI_Frontend.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'oui_frontend_add_user',
+                    nonce: OUI_Frontend.nonce,
+                    group_id: OUI_Frontend.groupId,
+                    email: $form.find('#quick-email').val(),
+                    first_name: $form.find('#quick-first-name').val(),
+                    last_name: $form.find('#quick-last-name').val(),
+                    role: $form.find('#quick-role').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        var data = response.data;
+                        var message = data.is_new ? OUI_Frontend.strings.userCreated : OUI_Frontend.strings.userExists;
+                        
+                        $result.removeClass('error').addClass('success').html(message).show();
+                        $form[0].reset();
+                        
+                        // Refresh the page after a short delay to show the new member
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 2000);
+                    } else {
+                        $result.removeClass('success').addClass('error').html(response.data.message || OUI_Frontend.strings.error).show();
+                    }
+                },
+                error: function(xhr) {
+                    var message = OUI_Frontend.strings.error;
+                    if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
+                        message = xhr.responseJSON.data.message;
+                    }
+                    $result.removeClass('success').addClass('error').html(message).show();
+                },
+                complete: function() {
+                    $button.prop('disabled', false).text('Add Member');
+                }
+            });
+        },
+        
+        toggleBulkImport: function() {
+            var $section = $('#oui-bulk-import-section');
+            var $button = $('#oui-toggle-bulk-import');
+            
+            if ($section.is(':visible')) {
+                $section.slideUp();
+                $button.text('Bulk Import from File');
+            } else {
+                $section.slideDown();
+                $button.text('Hide Bulk Import');
+            }
+        },
+        
+        cancelImport: function() {
+            OUI_Frontend.resetImport();
+            $('#oui-bulk-import-section').slideUp();
+            $('#oui-toggle-bulk-import').text('Bulk Import from File');
+        },
+        
+        closeImport: function() {
+            $('#oui-results-section').hide();
+            $('#oui-bulk-import-section').slideUp();
+            $('#oui-toggle-bulk-import').text('Bulk Import from File');
+        },
+        
         resetImport: function() {
             OUI_Frontend.isProcessing = false;
             OUI_Frontend.currentFileId = null;
@@ -357,13 +457,19 @@
             // Reset file input
             $('#oui-file-input').val('');
             
-            // Reset steps
+            // Reset steps (for full tab interface)
             $('.oui-step').hide();
             $('#upload-step').show();
             
             // Reset forms
             $('#oui-add-user-form')[0].reset();
             $('#oui-individual-result').hide();
+            
+            // Reset Members tab interface
+            $('#oui-mapping-section').hide();
+            $('#oui-progress-section').hide();
+            $('#oui-results-section').hide();
+            $('#oui-upload-progress').hide();
             
             // Clear preview
             $('#oui-file-preview').empty();

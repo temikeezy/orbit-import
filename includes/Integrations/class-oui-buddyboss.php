@@ -5,7 +5,19 @@ defined( 'ABSPATH' ) || exit;
 
 class BuddyBoss {
 	public static function is_active() {
-		return function_exists( 'groups_get_groups' ) && function_exists( 'groups_join_group' );
+		// Check for BuddyPress functions
+		$bp_functions = function_exists( 'groups_get_groups' ) && function_exists( 'groups_join_group' );
+		
+		// Check for BuddyBoss functions
+		$bb_functions = function_exists( 'bp_is_group' ) && function_exists( 'bp_get_current_group_id' );
+		
+		// Check if BuddyPress is active
+		$bp_active = class_exists( 'BuddyPress' ) || function_exists( 'buddypress' );
+		
+		// Check if BuddyBoss is active
+		$bb_active = class_exists( 'BuddyBoss' ) || function_exists( 'buddyboss' );
+		
+		return ( $bp_functions && $bp_active ) || ( $bb_functions && $bb_active );
 	}
 	public static function name_to_id_map() {
 		if ( ! self::is_active() ) { return array(); }
