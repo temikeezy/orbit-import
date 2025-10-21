@@ -53,24 +53,33 @@
                 return;
             }
             
+            // Check if already initialized
+            if ($dropzone.data('ogmi-initialized')) {
+                console.log('OGMI: Dropzone already initialized');
+                return;
+            }
+            
             console.log('OGMI: Initializing dropzone');
             
+            // Mark as initialized
+            $dropzone.data('ogmi-initialized', true);
+            
             // Drag and drop events
-            $dropzone.on('dragover dragenter', function(e) {
+            $dropzone.on('dragover.ogmi dragenter.ogmi', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 $(this).addClass('dragover');
                 console.log('OGMI: Drag over');
             });
             
-            $dropzone.on('dragleave dragend', function(e) {
+            $dropzone.on('dragleave.ogmi dragend.ogmi', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 $(this).removeClass('dragover');
                 console.log('OGMI: Drag leave');
             });
             
-            $dropzone.on('drop', function(e) {
+            $dropzone.on('drop.ogmi', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 $(this).removeClass('dragover');
@@ -84,15 +93,21 @@
                 }
             });
             
-            // Click to browse
-            $dropzone.on('click', function(e) {
+            // Click to browse - use a different approach to avoid conflicts
+            $dropzone.on('click.ogmi', function(e) {
                 e.preventDefault();
+                e.stopPropagation();
                 console.log('OGMI: Dropzone clicked');
-                $fileInput.click();
+                
+                // Trigger file input click directly
+                if ($fileInput.length > 0) {
+                    $fileInput[0].click();
+                }
             });
             
             // File input change event
-            $fileInput.on('change', function() {
+            $fileInput.off('change.ogmi').on('change.ogmi', function(e) {
+                e.stopPropagation();
                 console.log('OGMI: File input changed');
                 OGMI.handleFileSelect();
             });
