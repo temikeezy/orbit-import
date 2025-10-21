@@ -75,9 +75,9 @@ class OGMI_Group_Manager_Integration {
             return;
         }
         
-        // Check if we're in the members section
+        // Check if we're in the members section - BuddyBoss uses 'manage-members'
         $current_action = bp_action_variable( 0 );
-        if ( $current_action !== 'members' && ! empty( $current_action ) ) {
+        if ( $current_action !== 'members' && $current_action !== 'manage-members' && ! empty( $current_action ) ) {
             return;
         }
         
@@ -97,9 +97,9 @@ class OGMI_Group_Manager_Integration {
             return false;
         }
         
-        // Check the current action
+        // Check the current action - BuddyBoss uses 'manage-members' for the members management page
         $current_action = bp_action_variable( 0 );
-        return $current_action === 'members' || empty( $current_action );
+        return $current_action === 'members' || $current_action === 'manage-members' || empty( $current_action );
     }
     
     /**
