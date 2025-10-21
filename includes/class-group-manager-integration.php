@@ -23,8 +23,19 @@ class OGMI_Group_Manager_Integration {
      * Initialize the integration
      */
     public function init() {
-        // Hook into BuddyBoss group management
+        // Hook into BuddyBoss group management - try multiple hooks for better compatibility
         add_action( 'bp_after_group_admin_content', array( $this, 'add_import_interface' ) );
+        add_action( 'bp_after_group_members_list', array( $this, 'add_import_interface' ) );
+        add_action( 'bp_groups_members_template', array( $this, 'add_import_interface' ) );
+        add_action( 'bp_template_content', array( $this, 'add_import_interface' ) );
+        
+        // Try alternative approach
+        add_action( 'bp_before_group_members_list', array( $this, 'add_import_interface_alternative' ) );
+        add_action( 'bp_after_group_members_list', array( $this, 'add_import_interface_alternative' ) );
+        
+        // Add debug hook to see what's happening
+        add_action( 'wp_footer', array( $this, 'debug_info' ) );
+        
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
         
         // AJAX handlers
@@ -56,6 +67,28 @@ class OGMI_Group_Manager_Integration {
     }
     
     /**
+     * Alternative method to add import interface - try different approach
+     */
+    public function add_import_interface_alternative() {
+        // Check if we're on a group page and user can import
+        if ( ! bp_is_group() || ! $this->user_can_import() ) {
+            return;
+        }
+        
+        // Check if we're in the members section
+        $current_action = bp_action_variable( 0 );
+        if ( $current_action !== 'members' && ! empty( $current_action ) ) {
+            return;
+        }
+        
+        // Add the interface
+        $template_path = OGMI_PLUGIN_DIR . 'templates/members-import-interface.php';
+        if ( file_exists( $template_path ) ) {
+            include $template_path;
+        }
+    }
+    
+    /**
      * Check if we're on the members management page
      */
     private function is_members_management_page() {
@@ -67,6 +100,26 @@ class OGMI_Group_Manager_Integration {
         // Check the current action
         $current_action = bp_action_variable( 0 );
         return $current_action === 'members' || empty( $current_action );
+    }
+    
+    /**
+     * Debug information
+     */
+    public function debug_info() {
+        // Only show debug info to administrators and only on group pages
+        if ( ! current_user_can( 'administrator' ) || ! bp_is_group() ) {
+            return;
+        }
+        
+        echo '<div style="position: fixed; bottom: 10px; right: 10px; background: #000; color: #fff; padding: 10px; font-size: 12px; z-index: 9999; max-width: 300px;">';
+        echo '<strong>OGMI Debug Info:</strong><br>';
+        echo 'Is Group: ' . ( bp_is_group() ? 'Yes' : 'No' ) . '<br>';
+        echo 'Is Group Admin: ' . ( function_exists( 'bp_is_group_admin_page' ) && bp_is_group_admin_page() ? 'Yes' : 'No' ) . '<br>';
+        echo 'Current Action: ' . ( bp_action_variable( 0 ) ?: 'None' ) . '<br>';
+        echo 'Group ID: ' . ( bp_get_current_group_id() ?: 'None' ) . '<br>';
+        echo 'User Can Import: ' . ( $this->user_can_import() ? 'Yes' : 'No' ) . '<br>';
+        echo 'Is Members Page: ' . ( $this->is_members_management_page() ? 'Yes' : 'No' ) . '<br>';
+        echo '</div>';
     }
     
     /**
