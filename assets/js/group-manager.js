@@ -48,19 +48,26 @@
             var $dropzone = $('#ogmi-dropzone');
             var $fileInput = $('#ogmi-file-input');
             
-            if ($dropzone.length === 0) return;
+            if ($dropzone.length === 0) {
+                console.log('OGMI: Dropzone not found');
+                return;
+            }
+            
+            console.log('OGMI: Initializing dropzone');
             
             // Drag and drop events
             $dropzone.on('dragover dragenter', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 $(this).addClass('dragover');
+                console.log('OGMI: Drag over');
             });
             
             $dropzone.on('dragleave dragend', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 $(this).removeClass('dragover');
+                console.log('OGMI: Drag leave');
             });
             
             $dropzone.on('drop', function(e) {
@@ -68,16 +75,26 @@
                 e.stopPropagation();
                 $(this).removeClass('dragover');
                 
+                console.log('OGMI: File dropped');
                 var files = e.originalEvent.dataTransfer.files;
                 if (files.length > 0) {
+                    console.log('OGMI: Files found:', files.length);
                     $fileInput[0].files = files;
                     OGMI.handleFileSelect();
                 }
             });
             
             // Click to browse
-            $dropzone.on('click', function() {
+            $dropzone.on('click', function(e) {
+                e.preventDefault();
+                console.log('OGMI: Dropzone clicked');
                 $fileInput.click();
+            });
+            
+            // File input change event
+            $fileInput.on('change', function() {
+                console.log('OGMI: File input changed');
+                OGMI.handleFileSelect();
             });
         },
         
@@ -155,6 +172,11 @@
             } else {
                 $section.slideDown();
                 $button.text('Hide Bulk Import');
+                
+                // Initialize dropzone when section is shown
+                setTimeout(function() {
+                    OGMI.initDropzone();
+                }, 300);
             }
         },
         
@@ -162,12 +184,20 @@
          * Handle file selection
          */
         handleFileSelect: function() {
+            console.log('OGMI: handleFileSelect called');
             var fileInput = document.getElementById('ogmi-file-input');
-            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+            if (!fileInput) {
+                console.log('OGMI: File input not found');
+                return;
+            }
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                console.log('OGMI: No files selected');
                 return;
             }
             
             var file = fileInput.files[0];
+            console.log('OGMI: File selected:', file.name, file.size, file.type);
             OGMI.uploadFile(file);
         },
         
@@ -175,22 +205,29 @@
          * Upload file
          */
         uploadFile: function(file) {
+            console.log('OGMI: uploadFile called with:', file);
+            
             if (!file) {
+                console.log('OGMI: No file provided');
                 OGMI.showAlert(OGMI.strings.selectFile);
                 return;
             }
             
             // Validate file type
             if (!file.name.toLowerCase().endsWith('.csv')) {
+                console.log('OGMI: Invalid file type:', file.name);
                 OGMI.showAlert(OGMI.strings.invalidFile);
                 return;
             }
             
             // Validate file size (10MB)
             if (file.size > 10 * 1024 * 1024) {
+                console.log('OGMI: File too large:', file.size);
                 OGMI.showAlert(OGMI.strings.fileTooLarge);
                 return;
             }
+            
+            console.log('OGMI: File validation passed, starting upload');
             
             // Show progress
             OGMI.showUploadProgress();
@@ -202,6 +239,8 @@
             formData.append('group_id', OGMI.groupId);
             formData.append('file', file);
             
+            console.log('OGMI: Sending AJAX request to:', OGMI.ajaxUrl);
+            
             $.ajax({
                 url: OGMI.ajaxUrl,
                 type: 'POST',
@@ -209,6 +248,7 @@
                 processData: false,
                 contentType: false,
                 success: function(response) {
+                    console.log('OGMI: Upload success:', response);
                     OGMI.hideUploadProgress();
                     
                     if (response.success) {
@@ -217,10 +257,12 @@
                         OGMI.showFilePreview(response.data.preview_rows, response.data.headers);
                         $('#ogmi-mapping-section').show();
                     } else {
+                        console.log('OGMI: Upload failed:', response.data);
                         OGMI.showAlert(response.data.message || OGMI.strings.error);
                     }
                 },
                 error: function(xhr) {
+                    console.log('OGMI: Upload error:', xhr);
                     OGMI.hideUploadProgress();
                     var message = OGMI.strings.error;
                     if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
