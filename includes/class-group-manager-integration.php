@@ -34,7 +34,6 @@ class OGMI_Group_Manager_Integration {
         add_action( 'bp_after_group_members_list', array( $this, 'add_import_interface_alternative' ) );
         
         // Add debug hook to see what's happening (disabled for production)
-        add_action( 'wp_footer', array( $this, 'debug_info' ) );
         
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
         
@@ -107,25 +106,6 @@ class OGMI_Group_Manager_Integration {
         return $current_action === 'members' || $current_action === 'manage-members' || empty( $current_action );
     }
     
-    /**
-     * Debug information
-     */
-    public function debug_info() {
-        // Only show debug info to administrators and only on group pages
-        if ( ! current_user_can( 'administrator' ) || ! bp_is_group() ) {
-            return;
-        }
-        
-        echo '<div style="position: fixed; bottom: 10px; right: 10px; background: #000; color: #fff; padding: 10px; font-size: 12px; z-index: 9999; max-width: 300px;">';
-        echo '<strong>OGMI Debug Info:</strong><br>';
-        echo 'Is Group: ' . ( bp_is_group() ? 'Yes' : 'No' ) . '<br>';
-        echo 'Is Group Admin: ' . ( function_exists( 'bp_is_group_admin_page' ) && bp_is_group_admin_page() ? 'Yes' : 'No' ) . '<br>';
-        echo 'Current Action: ' . ( bp_action_variable( 0 ) ?: 'None' ) . '<br>';
-        echo 'Group ID: ' . ( bp_get_current_group_id() ?: 'None' ) . '<br>';
-        echo 'User Can Import: ' . ( $this->user_can_import() ? 'Yes' : 'No' ) . '<br>';
-        echo 'Is Members Page: ' . ( $this->is_members_management_page() ? 'Yes' : 'No' ) . '<br>';
-        echo '</div>';
-    }
     
     /**
      * Check if current user can import members
@@ -298,18 +278,13 @@ class OGMI_Group_Manager_Integration {
      * Handle batch processing
      */
     public function handle_batch_process() {
-        error_log('OGMI: handle_batch_process called');
-        error_log('OGMI: POST data: ' . print_r($_POST, true));
-        
         // Verify nonce
         if ( ! wp_verify_nonce( $_POST['nonce'], 'ogmi_import' ) ) {
-            error_log('OGMI: Nonce verification failed');
             wp_send_json_error( array( 'message' => __( 'Security check failed', OGMI_TEXT_DOMAIN ) ) );
         }
         
         // Check permissions
         if ( ! $this->user_can_import() ) {
-            error_log('OGMI: User permission check failed');
             wp_send_json_error( array( 'message' => __( 'Insufficient permissions', OGMI_TEXT_DOMAIN ) ) );
         }
         
@@ -319,22 +294,16 @@ class OGMI_Group_Manager_Integration {
         $offset = (int) $_POST['offset'];
         $group_id = (int) $_POST['group_id'];
         
-        error_log('OGMI: Processing batch - file_id: ' . $file_id . ', mapping: ' . print_r($mapping, true) . ', batch_size: ' . $batch_size . ', offset: ' . $offset . ', group_id: ' . $group_id);
-        
         // Use file processor to process batch
         $file_processor = new OGMI_File_Processor();
         $result = $file_processor->process_batch( $file_id, $mapping, $batch_size, $offset, $group_id );
         
-        error_log('OGMI: Batch processing result: ' . print_r($result, true));
-        
         if ( is_wp_error( $result ) ) {
-            error_log('OGMI: Batch processing error: ' . $result->get_error_message());
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
         }
         
         // If import is complete, clean up the file
         if ( isset( $result['has_more'] ) && ! $result['has_more'] ) {
-            error_log('OGMI: Import complete, cleaning up file');
             $file_processor->cleanup_file( $file_id );
         }
         
