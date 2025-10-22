@@ -92,14 +92,30 @@ class OGMI_Group_Manager_Integration {
      * Check if we're on the members management page
      */
     private function is_members_management_page() {
-        // Check if we're in group admin and on members page
+        error_log('OGMI: Checking if on members management page');
+        error_log('OGMI: bp_is_group_admin_page: ' . (function_exists( 'bp_is_group_admin_page' ) && bp_is_group_admin_page() ? 'YES' : 'NO'));
+        error_log('OGMI: bp_is_group: ' . (function_exists( 'bp_is_group' ) && bp_is_group() ? 'YES' : 'NO'));
+        error_log('OGMI: Current action: ' . (bp_action_variable( 0 ) ?: 'None'));
+        error_log('OGMI: Current URL: ' . $_SERVER['REQUEST_URI']);
+        
+        // Check if we're in a group context
+        if ( ! function_exists( 'bp_is_group' ) || ! bp_is_group() ) {
+            error_log('OGMI: Not in group context');
+            return false;
+        }
+        
+        // Check if we're in group admin
         if ( ! function_exists( 'bp_is_group_admin_page' ) || ! bp_is_group_admin_page() ) {
+            error_log('OGMI: Not in group admin page');
             return false;
         }
         
         // Check the current action - BuddyBoss uses 'manage-members' for the members management page
         $current_action = bp_action_variable( 0 );
-        return $current_action === 'members' || $current_action === 'manage-members' || empty( $current_action );
+        $is_members_page = $current_action === 'members' || $current_action === 'manage-members' || empty( $current_action );
+        
+        error_log('OGMI: Is members page: ' . ($is_members_page ? 'YES' : 'NO'));
+        return $is_members_page;
     }
     
     /**
@@ -159,13 +175,15 @@ class OGMI_Group_Manager_Integration {
      * Enqueue scripts and styles
      */
     public function enqueue_scripts() {
-        // Only enqueue on group management pages
-        if ( ! $this->is_members_management_page() ) {
-            error_log('OGMI: Not on members management page, skipping script enqueue');
+        error_log('OGMI: enqueue_scripts called');
+        
+        // Temporarily make this more permissive for debugging
+        if ( ! function_exists( 'bp_is_group' ) || ! bp_is_group() ) {
+            error_log('OGMI: Not in group context, skipping script enqueue');
             return;
         }
         
-        error_log('OGMI: Enqueuing scripts for members management page');
+        error_log('OGMI: In group context, enqueuing scripts');
         error_log('OGMI: User can import: ' . ($this->user_can_import() ? 'YES' : 'NO'));
         
         // Enqueue styles
