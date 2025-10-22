@@ -88,8 +88,8 @@
                 var files = e.originalEvent.dataTransfer.files;
                 if (files.length > 0) {
                     console.log('OGMI: Files found:', files.length);
-                    $fileInput[0].files = files;
-                    OGMI.handleFileSelect();
+                    var file = files[0];
+                    OGMI.uploadFile(file);
                 }
             });
             
@@ -99,16 +99,31 @@
                 e.stopPropagation();
                 console.log('OGMI: Dropzone clicked');
                 
-                // Trigger file input click directly
-                if ($fileInput.length > 0) {
-                    $fileInput[0].click();
-                }
+                // Create a new file input element to avoid conflicts
+                var newFileInput = document.createElement('input');
+                newFileInput.type = 'file';
+                newFileInput.accept = '.csv';
+                newFileInput.style.display = 'none';
+                
+                newFileInput.onchange = function(event) {
+                    var file = event.target.files[0];
+                    if (file) {
+                        console.log('OGMI: File selected via browse:', file.name);
+                        OGMI.uploadFile(file);
+                    }
+                    // Clean up
+                    document.body.removeChild(newFileInput);
+                };
+                
+                // Add to body and trigger click
+                document.body.appendChild(newFileInput);
+                newFileInput.click();
             });
             
-            // File input change event
+            // File input change event (for the original hidden input)
             $fileInput.off('change.ogmi').on('change.ogmi', function(e) {
                 e.stopPropagation();
-                console.log('OGMI: File input changed');
+                console.log('OGMI: Original file input changed');
                 OGMI.handleFileSelect();
             });
         },
