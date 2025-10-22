@@ -40,6 +40,9 @@ class OGMI_Group_Manager_Integration {
         add_action( 'wp_ajax_ogmi_upload_file', array( $this, 'handle_file_upload' ) );
         add_action( 'wp_ajax_ogmi_process_batch', array( $this, 'handle_batch_process' ) );
         add_action( 'wp_ajax_ogmi_get_file_preview', array( $this, 'handle_get_preview' ) );
+        
+        // Add debug info
+        add_action( 'wp_footer', array( $this, 'debug_info' ) );
     }
     
     /**
@@ -248,6 +251,37 @@ class OGMI_Group_Manager_Integration {
         
         error_log('OGMI: Sending success response');
         wp_send_json_success( $result );
+    }
+    
+    /**
+     * Debug information for troubleshooting
+     */
+    public function debug_info() {
+        // Only show on members management page
+        if ( ! $this->is_members_management_page() ) {
+            return;
+        }
+        
+        // Check permissions
+        if ( ! $this->user_can_import() ) {
+            return;
+        }
+        
+        $group_id = bp_get_current_group_id();
+        $nonce = wp_create_nonce( 'ogmi_import' );
+        
+        echo '<div id="ogmi-debug-panel" style="position: fixed; top: 10px; right: 10px; background: #fff; border: 2px solid #0073aa; padding: 15px; z-index: 9999; max-width: 300px; font-size: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">';
+        echo '<h4 style="margin: 0 0 10px 0; color: #0073aa;">OGMI Debug Info</h4>';
+        echo '<p><strong>Is Group:</strong> ' . ( bp_is_group() ? 'Yes' : 'No' ) . '</p>';
+        echo '<p><strong>Is Group Admin:</strong> ' . ( groups_is_user_admin( get_current_user_id(), $group_id ) ? 'Yes' : 'No' ) . '</p>';
+        echo '<p><strong>Current Action:</strong> ' . bp_action_variable( 0 ) . '</p>';
+        echo '<p><strong>Group ID:</strong> ' . $group_id . '</p>';
+        echo '<p><strong>User Can Import:</strong> ' . ( $this->user_can_import() ? 'Yes' : 'No' ) . '</p>';
+        echo '<p><strong>Is Members Page:</strong> ' . ( $this->is_members_management_page() ? 'Yes' : 'No' ) . '</p>';
+        echo '<p><strong>Nonce:</strong> ' . $nonce . '</p>';
+        echo '<p><strong>AJAX URL:</strong> ' . admin_url( 'admin-ajax.php' ) . '</p>';
+        echo '<p><strong>Script Version:</strong> ' . OGMI_VERSION . '</p>';
+        echo '</div>';
     }
     
     /**

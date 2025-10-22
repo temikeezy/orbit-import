@@ -17,6 +17,16 @@
          * Initialize the plugin
          */
         init: function() {
+            console.log('OGMI: Initializing plugin');
+            console.log('OGMI: OGMI_DATA available:', typeof OGMI_DATA !== 'undefined');
+            if (typeof OGMI_DATA !== 'undefined') {
+                console.log('OGMI: OGMI_DATA.nonce:', OGMI_DATA.nonce);
+                console.log('OGMI: OGMI_DATA.groupId:', OGMI_DATA.groupId);
+                console.log('OGMI: OGMI_DATA.ajaxUrl:', OGMI_DATA.ajaxUrl);
+            } else {
+                console.log('OGMI: OGMI_DATA is undefined - script localization failed');
+            }
+            
             this.bindEvents();
             this.initDropzone();
             
@@ -85,8 +95,18 @@
          * Bind event handlers
          */
         bindEvents: function() {
+            console.log('OGMI: Binding events');
+            
+            // Check if form exists
+            var $form = $('#ogmi-quick-add-form');
+            console.log('OGMI: Quick add form found:', $form.length);
+            if ($form.length > 0) {
+                console.log('OGMI: Form HTML:', $form[0].outerHTML);
+            }
+            
             // Quick add form - use document delegation to handle dynamically added content
             $(document).on('submit', '#ogmi-quick-add-form', this.handleQuickAdd);
+            console.log('OGMI: Quick add form event bound');
             
             // Bulk import toggle
             $(document).on('click', '#ogmi-toggle-bulk-import', this.toggleBulkImport);
@@ -110,6 +130,16 @@
             $(document).on('click', '#ogmi-close-import', function() {
                 OGMI.closeImport();
             });
+            
+            // Test form submission manually
+            setTimeout(function() {
+                var $testForm = $('#ogmi-quick-add-form');
+                console.log('OGMI: Form check after 2 seconds:', $testForm.length);
+                if ($testForm.length > 0) {
+                    console.log('OGMI: Form submit button found:', $testForm.find('button[type="submit"]').length);
+                    console.log('OGMI: Form email input found:', $testForm.find('#quick-email').length);
+                }
+            }, 2000);
         },
         
         /**
