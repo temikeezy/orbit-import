@@ -165,11 +165,14 @@ class OGMI_Group_Manager_Integration {
      */
     public function enqueue_scripts() {
         error_log('OGMI: enqueue_scripts called - version 1.0.3');
-        if ( ! function_exists( 'bp_is_group' ) || ! bp_is_group() ) {
-            error_log('OGMI: Not in group context, skipping');
+        
+        // Check if we're on the members management page
+        if ( ! $this->is_members_management_page() ) {
+            error_log('OGMI: Not on members management page, skipping');
             return;
         }
-        error_log('OGMI: In group context, proceeding with enqueue');
+        
+        error_log('OGMI: On members management page, proceeding with enqueue');
         
         // Enqueue styles
         wp_enqueue_style(
