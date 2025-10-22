@@ -252,7 +252,9 @@ class OGMI_File_Processor {
         }
         
         // Validate mapping
-        if ( empty( $mapping['email'] ) ) {
+        if ( ! isset( $mapping['email'] ) || $mapping['email'] === '' ) {
+            error_log('OGMI: Email mapping validation failed - email not set or empty');
+            error_log('OGMI: Mapping received: ' . print_r($mapping, true));
             return new WP_Error( 'email_mapping_required', __( 'Email mapping is required', OGMI_TEXT_DOMAIN ) );
         }
         
