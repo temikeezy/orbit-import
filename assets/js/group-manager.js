@@ -17,13 +17,6 @@
          * Initialize the plugin
          */
         init: function() {
-            console.log('OGMI: Initializing plugin');
-            console.log('OGMI: OGMI_DATA available:', typeof OGMI_DATA !== 'undefined');
-            if (typeof OGMI_DATA !== 'undefined') {
-                console.log('OGMI: OGMI_DATA.nonce:', OGMI_DATA.nonce);
-                console.log('OGMI: OGMI_DATA.groupId:', OGMI_DATA.groupId);
-                console.log('OGMI: OGMI_DATA.ajaxUrl:', OGMI_DATA.ajaxUrl);
-            }
             this.bindEvents();
             this.initDropzone();
             
@@ -35,7 +28,6 @@
          * Show specific wizard step
          */
         showStep: function(step) {
-            console.log('OGMI: Showing step:', step);
             
             // Hide all steps
             $('.ogmi-wizard-step').hide();
@@ -75,7 +67,6 @@
          * Reset wizard to step 1
          */
         resetWizard: function() {
-            console.log('OGMI: Resetting wizard to step 1');
             this.currentFileId = null;
             this.currentMapping = {};
             this.isProcessing = false;
@@ -127,25 +118,20 @@
         initDropzone: function() {
             // Check if OGMI object is available
             if (typeof OGMI === 'undefined') {
-                console.log('OGMI: OGMI object is not defined - script localization failed');
                 return;
             }
             
-            console.log('OGMI: OGMI object available:', OGMI);
             var dropzone = document.getElementById('ogmi-dropzone');
             
             if (!dropzone) {
-                console.log('OGMI: Dropzone not found');
                 return;
             }
             
             // Check if already initialized
             if (dropzone.dataset.ogmiInitialized === 'true') {
-                console.log('OGMI: Dropzone already initialized');
                 return;
             }
             
-            console.log('OGMI: Initializing dropzone with vanilla JS');
             
             // Mark as initialized
             dropzone.dataset.ogmiInitialized = 'true';
@@ -155,28 +141,24 @@
                 e.preventDefault();
                 e.stopPropagation();
                 this.classList.add('dragover');
-                console.log('OGMI: Drag over');
             });
             
             dropzone.addEventListener('dragenter', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 this.classList.add('dragover');
-                console.log('OGMI: Drag enter');
             });
             
             dropzone.addEventListener('dragleave', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 this.classList.remove('dragover');
-                console.log('OGMI: Drag leave');
             });
             
             dropzone.addEventListener('dragend', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 this.classList.remove('dragover');
-                console.log('OGMI: Drag end');
             });
             
             dropzone.addEventListener('drop', function(e) {
@@ -184,10 +166,8 @@
                 e.stopPropagation();
                 this.classList.remove('dragover');
                 
-                console.log('OGMI: File dropped');
                 var files = e.dataTransfer.files;
                 if (files.length > 0) {
-                    console.log('OGMI: Files found:', files.length);
                     var file = files[0];
                     OGMI.uploadFile(file);
                 }
@@ -197,7 +177,6 @@
             dropzone.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('OGMI: Dropzone clicked');
                 
                 // Create a new file input element
                 var newFileInput = document.createElement('input');
@@ -208,7 +187,6 @@
                 newFileInput.addEventListener('change', function(event) {
                     var file = event.target.files[0];
                     if (file) {
-                        console.log('OGMI: File selected via browse:', file.name);
                         OGMI.uploadFile(file);
                     }
                     // Clean up
@@ -311,20 +289,16 @@
          * Handle file selection
          */
         handleFileSelect: function() {
-            console.log('OGMI: handleFileSelect called');
             var fileInput = document.getElementById('ogmi-file-input');
             if (!fileInput) {
-                console.log('OGMI: File input not found');
                 return;
             }
             
             if (!fileInput.files || fileInput.files.length === 0) {
-                console.log('OGMI: No files selected');
                 return;
             }
             
             var file = fileInput.files[0];
-            console.log('OGMI: File selected:', file.name, file.size, file.type);
             OGMI.uploadFile(file);
         },
         
@@ -332,34 +306,24 @@
          * Upload file
          */
         uploadFile: function(file) {
-            console.log('OGMI: uploadFile called with:', file);
-            console.log('OGMI: Full OGMI object:', OGMI);
-            console.log('OGMI: OGMI_DATA object:', typeof OGMI_DATA !== 'undefined' ? OGMI_DATA : 'undefined');
-            console.log('OGMI: OGMI_DATA.nonce:', typeof OGMI_DATA !== 'undefined' ? OGMI_DATA.nonce : 'undefined');
-            console.log('OGMI: OGMI_DATA.groupId:', typeof OGMI_DATA !== 'undefined' ? OGMI_DATA.groupId : 'undefined');
-            console.log('OGMI: OGMI_DATA.ajaxUrl:', typeof OGMI_DATA !== 'undefined' ? OGMI_DATA.ajaxUrl : 'undefined');
             
             if (!file) {
-                console.log('OGMI: No file provided');
                 OGMI.showAlert(OGMI_DATA.strings.selectFile);
                 return;
             }
             
             // Validate file type
             if (!file.name.toLowerCase().endsWith('.csv')) {
-                console.log('OGMI: Invalid file type:', file.name);
                 OGMI.showAlert(OGMI_DATA.strings.invalidFile);
                 return;
             }
             
             // Validate file size (10MB)
             if (file.size > 10 * 1024 * 1024) {
-                console.log('OGMI: File too large:', file.size);
                 OGMI.showAlert(OGMI_DATA.strings.fileTooLarge);
                 return;
             }
             
-            console.log('OGMI: File validation passed, starting upload');
             
             // Show progress
             OGMI.showUploadProgress();
@@ -373,7 +337,6 @@
             
             // Check if OGMI object is available
             if (typeof OGMI === 'undefined') {
-                console.log('OGMI: OGMI object is undefined - script localization failed');
                 alert('Script configuration error. Please refresh the page and try again.');
                 return;
             }
@@ -382,17 +345,12 @@
             var groupId = typeof OGMI_DATA !== 'undefined' ? OGMI_DATA.groupId : '';
             var ajaxUrl = typeof OGMI_DATA !== 'undefined' ? OGMI_DATA.ajaxUrl : (typeof ajaxurl !== 'undefined' ? ajaxurl : '/wp-admin/admin-ajax.php');
             
-            console.log('OGMI: Nonce being sent:', nonce);
-            console.log('OGMI: Group ID being sent:', groupId);
-            console.log('OGMI: AJAX URL:', ajaxUrl);
             
             // Check if we have a valid nonce
             if (!nonce) {
-                console.log('OGMI: No nonce available, this will likely fail');
                 alert('Security token missing. Please refresh the page and try again.');
                 return;
             }
-            console.log('OGMI: Sending AJAX request to:', ajaxUrl);
             
             $.ajax({
                 url: ajaxUrl,
@@ -401,29 +359,22 @@
                 processData: false,
                 contentType: false,
                 success: function(response) {
-                    console.log('OGMI: Upload success response:', response);
-                    console.log('OGMI: Response type:', typeof response);
                     OGMI.hideUploadProgress();
                     
                     // Check if response is HTML (error page) instead of JSON
                     if (typeof response === 'string' && response.includes('<!doctype html>')) {
-                        console.log('OGMI: Server returned HTML instead of JSON - likely an error');
                         OGMI.showAlert('Server error: Received HTML response instead of JSON. Please check your WordPress configuration.');
                         return;
                     }
                     
                     // Check if response is a proper JSON object
                     if (typeof response !== 'object' || response === null) {
-                        console.log('OGMI: Invalid response format:', response);
                         OGMI.showAlert('Invalid response from server. Please try again.');
                         return;
                     }
                     
-                    console.log('OGMI: Response success:', response.success);
-                    console.log('OGMI: Response data:', response.data);
                     
                     if (response.success) {
-                        console.log('OGMI: Processing successful upload');
                         OGMI.currentFileId = response.data.file_id;
                         OGMI.populateMappingOptions(response.data.headers);
                         OGMI.showFilePreview(response.data.preview_rows, response.data.headers);
@@ -431,7 +382,6 @@
                         // Move to step 2 (mapping)
                         OGMI.showStep(2);
                     } else {
-                        console.log('OGMI: Upload failed:', response.data);
                         var errorMessage = OGMI_DATA.strings.error;
                         if (response.data && response.data.message) {
                             errorMessage = response.data.message;
@@ -440,11 +390,6 @@
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.log('OGMI: Upload error details:');
-                    console.log('OGMI: XHR:', xhr);
-                    console.log('OGMI: Status:', status);
-                    console.log('OGMI: Error:', error);
-                    console.log('OGMI: Response text:', xhr.responseText);
                     OGMI.hideUploadProgress();
                     var message = OGMI_DATA.strings.error;
                     if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
@@ -508,57 +453,34 @@
          * Update mapping
          */
         updateMapping: function() {
-            console.log('OGMI: updateMapping called');
             var mapping = {};
             $('.ogmi-mapping-item select').each(function() {
                 var $select = $(this);
                 var name = $select.attr('name').match(/\[([^\]]+)\]/)[1];
                 var value = $select.val();
-                console.log('OGMI: Found select with name:', name, 'value:', value, 'type:', typeof value);
                 if (value !== '') {
                     mapping[name] = parseInt(value, 10);
                 }
             });
             
-            console.log('OGMI: Updated mapping:', mapping);
-            console.log('OGMI: Mapping keys:', Object.keys(mapping));
-            console.log('OGMI: Mapping email value:', mapping.email);
-            console.log('OGMI: Mapping email type:', typeof mapping.email);
             OGMI.currentMapping = mapping;
-            console.log('OGMI: Current mapping after update:', OGMI.currentMapping);
-            console.log('OGMI: Current mapping email after update:', OGMI.currentMapping.email);
         },
         
         /**
          * Start import
          */
         startImport: function() {
-            console.log('OGMI: startImport called');
-            console.log('OGMI: Current mapping:', OGMI.currentMapping);
-            console.log('OGMI: Current mapping type:', typeof OGMI.currentMapping);
-            console.log('OGMI: Current mapping email:', OGMI.currentMapping.email);
-            console.log('OGMI: Current mapping email type:', typeof OGMI.currentMapping.email);
-            console.log('OGMI: Current mapping keys:', Object.keys(OGMI.currentMapping));
-            console.log('OGMI: Email mapping check:', !OGMI.currentMapping.email && OGMI.currentMapping.email !== 0);
-            console.log('OGMI: Email mapping check breakdown:');
-            console.log('  - !OGMI.currentMapping.email:', !OGMI.currentMapping.email);
-            console.log('  - OGMI.currentMapping.email !== 0:', OGMI.currentMapping.email !== 0);
-            console.log('  - Combined condition:', !OGMI.currentMapping.email && OGMI.currentMapping.email !== 0);
             
             if (OGMI.isProcessing) {
-                console.log('OGMI: Already processing, returning');
                 return;
             }
             
             // Validate mapping
             if (!OGMI.currentMapping.email && OGMI.currentMapping.email !== 0) {
-                console.log('OGMI: Email mapping validation failed');
-                console.log('OGMI: Mapping object keys:', Object.keys(OGMI.currentMapping));
                 OGMI.showAlert('Email mapping is required');
                 return;
             }
             
-            console.log('OGMI: Starting import process');
             OGMI.isProcessing = true;
             
             // Move to step 3 (import progress)
@@ -571,11 +493,8 @@
          * Process batch
          */
         processBatch: function(offset) {
-            console.log('OGMI: processBatch called with offset:', offset);
-            console.log('OGMI: OGMI_DATA available:', typeof OGMI_DATA !== 'undefined');
             
             if (!OGMI.isProcessing) {
-                console.log('OGMI: Not processing, returning');
                 return;
             }
             
@@ -583,9 +502,6 @@
             var groupId = typeof OGMI_DATA !== 'undefined' ? OGMI_DATA.groupId : '';
             var ajaxUrl = typeof OGMI_DATA !== 'undefined' ? OGMI_DATA.ajaxUrl : (typeof ajaxurl !== 'undefined' ? ajaxurl : '/wp-admin/admin-ajax.php');
             
-            console.log('OGMI: Sending batch request with nonce:', nonce, 'groupId:', groupId, 'ajaxUrl:', ajaxUrl);
-            console.log('OGMI: Current mapping being sent:', OGMI.currentMapping);
-            console.log('OGMI: Current file ID being sent:', OGMI.currentFileId);
             
             var ajaxData = {
                 action: 'ogmi_process_batch',
@@ -597,47 +513,33 @@
                 group_id: groupId
             };
             
-            console.log('OGMI: Full AJAX data being sent:', ajaxData);
             
             $.ajax({
                 url: ajaxUrl,
                 type: 'POST',
                 data: ajaxData,
                 success: function(response) {
-                    console.log('OGMI: Batch AJAX success response:', response);
-                    console.log('OGMI: Response success:', response.success);
-                    console.log('OGMI: Response data:', response.data);
                     
                     if (response.success) {
                         var data = response.data;
-                        console.log('OGMI: Batch data:', data);
                         OGMI.updateStats(data);
                         OGMI.addLogEntry('Processed ' + data.processed + ' rows', 'info');
                         
                         if (data.has_more) {
-                            console.log('OGMI: More data to process, continuing...');
                             // Continue processing
                             setTimeout(function() {
                                 OGMI.processBatch(data.offset);
                             }, 500);
                         } else {
-                            console.log('OGMI: Import complete');
                             // Import complete
                             OGMI.completeImport(data);
                         }
                     } else {
-                        console.log('OGMI: Batch processing failed:', response.data);
-                        console.log('OGMI: Full error response:', JSON.stringify(response.data, null, 2));
-                        console.log('OGMI: Error message:', response.data.message);
-                        console.log('OGMI: Error type:', typeof response.data.message);
                         OGMI.showAlert(response.data.message || OGMI_DATA.strings.error);
                         OGMI.isProcessing = false;
                     }
                 },
                 error: function(xhr) {
-                    console.log('OGMI: Batch AJAX error:', xhr);
-                    console.log('OGMI: Error status:', xhr.status);
-                    console.log('OGMI: Error response:', xhr.responseText);
                     
                     var message = OGMI_DATA.strings.error;
                     if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
