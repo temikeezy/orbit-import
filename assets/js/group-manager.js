@@ -123,18 +123,17 @@
                 console.log('OGMI: Form HTML:', $form[0].outerHTML);
             }
             
-            // Quick add form - use document delegation to handle dynamically added content
-            $(document).on('submit', '#ogmi-quick-add-form', this.handleQuickAdd);
-            console.log('OGMI: Quick add form event bound');
+            // Quick add - handled via button click to avoid nested form submit
+            $(document).on('click', '#ogmi-quick-add-form .ogmi-button-primary', this.handleQuickAdd);
+            console.log('OGMI: Quick add button event bound');
             
             // Also try to prevent any form submission on the page
-            $(document).on('submit', 'form', function(e) {
-                if ($(this).attr('id') === 'ogmi-quick-add-form') {
-                    console.log('OGMI: Form submission intercepted for quick add form');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
-                }
+            // Intercept any accidental submit on our container (defensive)
+            $(document).on('submit', '#ogmi-quick-add-form', function(e) {
+                console.log('OGMI: Prevented default submit on quick add container');
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
             });
             
             // Bulk import toggle
@@ -297,7 +296,12 @@
                 console.log('OGMI: OGMI_DATA.ajaxUrl:', OGMI_DATA.ajaxUrl);
             }
             
-            var $form = $(this);
+            // Resolve the quick-add container regardless of whether the event
+            // originated from a form submit or a button click inside the container
+            var $form = $('#ogmi-quick-add-form');
+            if ($form.length === 0 && e && e.currentTarget) {
+                $form = $(e.currentTarget).closest('#ogmi-quick-add-form');
+            }
             var $button = $form.find('button[type="submit"]');
             var $result = $('#ogmi-quick-result');
             

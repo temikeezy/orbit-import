@@ -24,7 +24,7 @@ $group = groups_get_group( $group_id );
         <!-- Quick Add Individual Member -->
         <div class="ogmi-quick-add">
             <h4><?php echo esc_html__( 'Quick Add Member', OGMI_TEXT_DOMAIN ); ?></h4>
-            <form id="ogmi-quick-add-form" class="ogmi-inline-form" novalidate>
+            <div id="ogmi-quick-add-form" class="ogmi-inline-form" data-ogmi="quick-add">
                 <div class="ogmi-form-row-inline">
                     <div class="ogmi-form-field">
                         <label for="quick-email"><?php echo esc_html__( 'Email Address *', OGMI_TEXT_DOMAIN ); ?></label>
@@ -51,12 +51,12 @@ $group = groups_get_group( $group_id );
                     </div>
                     
                     <div class="ogmi-form-field ogmi-form-field-button">
-                        <button type="submit" class="ogmi-button ogmi-button-primary">
+                        <button type="button" class="ogmi-button ogmi-button-primary">
                             <?php echo esc_html__( 'Add Member', OGMI_TEXT_DOMAIN ); ?>
                         </button>
                     </div>
                 </div>
-            </form>
+            </div>
             <div id="ogmi-quick-result" class="ogmi-result" style="display: none;"></div>
         </div>
 
