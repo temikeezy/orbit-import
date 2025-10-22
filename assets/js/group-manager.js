@@ -548,19 +548,25 @@
             var ajaxUrl = typeof OGMI_DATA !== 'undefined' ? OGMI_DATA.ajaxUrl : (typeof ajaxurl !== 'undefined' ? ajaxurl : '/wp-admin/admin-ajax.php');
             
             console.log('OGMI: Sending batch request with nonce:', nonce, 'groupId:', groupId, 'ajaxUrl:', ajaxUrl);
+            console.log('OGMI: Current mapping being sent:', OGMI.currentMapping);
+            console.log('OGMI: Current file ID being sent:', OGMI.currentFileId);
+            
+            var ajaxData = {
+                action: 'ogmi_process_batch',
+                nonce: nonce,
+                file_id: OGMI.currentFileId,
+                mapping: OGMI.currentMapping,
+                batch_size: 10,
+                offset: offset,
+                group_id: groupId
+            };
+            
+            console.log('OGMI: Full AJAX data being sent:', ajaxData);
             
             $.ajax({
                 url: ajaxUrl,
                 type: 'POST',
-                data: {
-                    action: 'ogmi_process_batch',
-                    nonce: nonce,
-                    file_id: OGMI.currentFileId,
-                    mapping: OGMI.currentMapping,
-                    batch_size: 10,
-                    offset: offset,
-                    group_id: groupId
-                },
+                data: ajaxData,
                 success: function(response) {
                     console.log('OGMI: Batch AJAX success response:', response);
                     console.log('OGMI: Response success:', response.success);
