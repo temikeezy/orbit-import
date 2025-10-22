@@ -17,6 +17,13 @@
          * Initialize the plugin
          */
         init: function() {
+            console.log('OGMI: Initializing plugin');
+            console.log('OGMI: OGMI_DATA available:', typeof OGMI_DATA !== 'undefined');
+            if (typeof OGMI_DATA !== 'undefined') {
+                console.log('OGMI: OGMI_DATA.nonce:', OGMI_DATA.nonce);
+                console.log('OGMI: OGMI_DATA.groupId:', OGMI_DATA.groupId);
+                console.log('OGMI: OGMI_DATA.ajaxUrl:', OGMI_DATA.ajaxUrl);
+            }
             this.bindEvents();
             this.initDropzone();
         },
@@ -202,10 +209,15 @@
          */
         handleQuickAdd: function(e) {
             e.preventDefault();
+            console.log('OGMI: handleQuickAdd called');
             
             var $form = $(this);
             var $button = $form.find('button[type="submit"]');
             var $result = $('#ogmi-quick-result');
+            
+            console.log('OGMI: Form found:', $form.length);
+            console.log('OGMI: Button found:', $button.length);
+            console.log('OGMI: Result div found:', $result.length);
             
             // Validate email
             var email = $form.find('#quick-email').val().trim();
@@ -217,18 +229,23 @@
             $button.prop('disabled', true).text(OGMI_DATA.strings.processing);
             $result.hide();
             
+            var ajaxData = {
+                action: 'ogmi_add_member',
+                nonce: OGMI_DATA.nonce,
+                group_id: OGMI_DATA.groupId,
+                email: email,
+                first_name: $form.find('#quick-first-name').val().trim(),
+                last_name: $form.find('#quick-last-name').val().trim(),
+                role: $form.find('#quick-role').val()
+            };
+            
+            console.log('OGMI: Sending AJAX data:', ajaxData);
+            console.log('OGMI: AJAX URL:', OGMI_DATA.ajaxUrl);
+            
             $.ajax({
                 url: OGMI_DATA.ajaxUrl,
                 type: 'POST',
-                data: {
-                    action: 'ogmi_add_member',
-                    nonce: OGMI_DATA.nonce,
-                    group_id: OGMI_DATA.groupId,
-                    email: email,
-                    first_name: $form.find('#quick-first-name').val().trim(),
-                    last_name: $form.find('#quick-last-name').val().trim(),
-                    role: $form.find('#quick-role').val()
-                },
+                data: ajaxData,
                 success: function(response) {
                     if (response.success) {
                         var data = response.data;
