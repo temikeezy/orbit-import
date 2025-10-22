@@ -62,7 +62,11 @@ class OGMI_Group_Manager_Integration {
         // Include the template
         $template_path = OGMI_PLUGIN_DIR . 'templates/members-import-interface.php';
         if ( file_exists( $template_path ) ) {
+            error_log('OGMI: Including template: ' . $template_path);
             include $template_path;
+            error_log('OGMI: Template included successfully');
+        } else {
+            error_log('OGMI: Template file not found: ' . $template_path);
         }
     }
     
@@ -84,7 +88,11 @@ class OGMI_Group_Manager_Integration {
         // Add the interface
         $template_path = OGMI_PLUGIN_DIR . 'templates/members-import-interface.php';
         if ( file_exists( $template_path ) ) {
+            error_log('OGMI: Alternative method - Including template: ' . $template_path);
             include $template_path;
+            error_log('OGMI: Alternative method - Template included successfully');
+        } else {
+            error_log('OGMI: Alternative method - Template file not found: ' . $template_path);
         }
     }
     

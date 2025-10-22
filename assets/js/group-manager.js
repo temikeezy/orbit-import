@@ -167,6 +167,15 @@
                 if ($testForm.length > 0) {
                     console.log('OGMI: Form submit button found:', $testForm.find('button[type="submit"]').length);
                     console.log('OGMI: Form email input found:', $testForm.find('#quick-email').length);
+                } else {
+                    console.log('OGMI: Form not found - checking for any forms with ogmi in the ID:');
+                    $('form[id*="ogmi"]').each(function() {
+                        console.log('OGMI: Found form with ogmi in ID:', this.id, this);
+                    });
+                    console.log('OGMI: All forms on page:');
+                    $('form').each(function() {
+                        console.log('OGMI: Form ID:', this.id || 'no-id', 'Class:', this.className);
+                    });
                 }
             }, 2000);
         },
