@@ -210,7 +210,7 @@ class OGMI_Group_Manager_Integration {
         error_log('OGMI: Nonce: ' . $nonce);
         
         // Localize script
-        wp_localize_script( 'ogmi-group-manager', 'OGMI', array(
+        $localize_data = array(
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
             'nonce' => $nonce,
             'groupId' => $group_id,
@@ -229,7 +229,11 @@ class OGMI_Group_Manager_Integration {
                 'invalidEmail' => __( 'Please enter a valid email address', OGMI_TEXT_DOMAIN ),
                 'importComplete' => __( 'Import completed successfully!', OGMI_TEXT_DOMAIN ),
             )
-        ) );
+        );
+        
+        error_log('OGMI: Localize data: ' . print_r($localize_data, true));
+        wp_localize_script( 'ogmi-group-manager', 'OGMI', $localize_data );
+        error_log('OGMI: Script localized successfully');
     }
     
     /**
