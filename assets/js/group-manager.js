@@ -644,7 +644,7 @@
                 $('#ogmi-errors-result').show();
             }
             
-            OGMI.addLogEntry(OGMI.strings.importComplete, 'success');
+            OGMI.addLogEntry(OGMI_DATA.strings.importComplete, 'success');
         },
         
         /**

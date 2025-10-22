@@ -278,11 +278,16 @@ class OGMI_File_Processor {
             $first_name = $this->get_mapped_value( $row, $mapping, 'first_name' );
             $last_name = $this->get_mapped_value( $row, $mapping, 'last_name' );
             
+            error_log('OGMI: Processing row ' . $results['processed'] . ' - email: ' . $email . ', first_name: ' . $first_name . ', last_name: ' . $last_name);
+            error_log('OGMI: Raw row data: ' . print_r($row, true));
+            error_log('OGMI: Mapping used: ' . print_r($mapping, true));
+            
             // Default all imported users to 'member' role
             $role = 'member';
             
             // Validate email
             if ( empty( $email ) || ! is_email( $email ) ) {
+                error_log('OGMI: Email validation failed for row ' . $results['processed'] . ' - email: ' . $email);
                 $results['skipped']++;
                 $results['errors']++;
                 continue;
@@ -350,7 +355,7 @@ class OGMI_File_Processor {
      * Get mapped value from row
      */
     private function get_mapped_value( $row, $mapping, $field ) {
-        if ( ! isset( $mapping[ $field ] ) || empty( $mapping[ $field ] ) ) {
+        if ( ! isset( $mapping[ $field ] ) || $mapping[ $field ] === '' ) {
             return '';
         }
         
