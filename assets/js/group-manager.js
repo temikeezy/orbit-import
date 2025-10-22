@@ -486,14 +486,16 @@
                 var $select = $(this);
                 var name = $select.attr('name').match(/\[([^\]]+)\]/)[1];
                 var value = $select.val();
-                console.log('OGMI: Found select with name:', name, 'value:', value);
+                console.log('OGMI: Found select with name:', name, 'value:', value, 'type:', typeof value);
                 if (value !== '') {
                     mapping[name] = parseInt(value, 10);
                 }
             });
             
             console.log('OGMI: Updated mapping:', mapping);
+            console.log('OGMI: Mapping keys:', Object.keys(mapping));
             OGMI.currentMapping = mapping;
+            console.log('OGMI: Current mapping after update:', OGMI.currentMapping);
         },
         
         /**
@@ -502,6 +504,10 @@
         startImport: function() {
             console.log('OGMI: startImport called');
             console.log('OGMI: Current mapping:', OGMI.currentMapping);
+            console.log('OGMI: Current mapping type:', typeof OGMI.currentMapping);
+            console.log('OGMI: Current mapping email:', OGMI.currentMapping.email);
+            console.log('OGMI: Current mapping email type:', typeof OGMI.currentMapping.email);
+            console.log('OGMI: Email mapping check:', !OGMI.currentMapping.email && OGMI.currentMapping.email !== 0);
             
             if (OGMI.isProcessing) {
                 console.log('OGMI: Already processing, returning');
@@ -511,6 +517,7 @@
             // Validate mapping
             if (!OGMI.currentMapping.email && OGMI.currentMapping.email !== 0) {
                 console.log('OGMI: Email mapping validation failed');
+                console.log('OGMI: Mapping object keys:', Object.keys(OGMI.currentMapping));
                 OGMI.showAlert('Email mapping is required');
                 return;
             }
