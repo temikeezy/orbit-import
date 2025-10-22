@@ -94,21 +94,8 @@
          * Bind event handlers
          */
         bindEvents: function() {
-            // Quick add form
-            console.log('OGMI: Binding events...');
-            console.log('OGMI: Looking for form with ID: #ogmi-quick-add-form');
-            console.log('OGMI: Form found:', $('#ogmi-quick-add-form').length);
-            
+            // Quick add form - use document delegation to handle dynamically added content
             $(document).on('submit', '#ogmi-quick-add-form', this.handleQuickAdd);
-            console.log('OGMI: Event handler bound for #ogmi-quick-add-form');
-            
-            // Test if we can find the form and button
-            setTimeout(function() {
-                console.log('OGMI: Testing form elements after 1 second...');
-                console.log('OGMI: Form found:', $('#ogmi-quick-add-form').length);
-                console.log('OGMI: Submit button found:', $('#ogmi-quick-add-form button[type="submit"]').length);
-                console.log('OGMI: Email input found:', $('#ogmi-quick-add-form #quick-email').length);
-            }, 1000);
             
             // Bulk import toggle
             $(document).on('click', '#ogmi-toggle-bulk-import', this.toggleBulkImport);
@@ -241,18 +228,10 @@
          */
         handleQuickAdd: function(e) {
             e.preventDefault();
-            console.log('OGMI: handleQuickAdd called');
-            console.log('OGMI: Event object:', e);
-            console.log('OGMI: This object:', this);
             
             var $form = $(this);
             var $button = $form.find('button[type="submit"]');
             var $result = $('#ogmi-quick-result');
-            
-            console.log('OGMI: Form found:', $form.length);
-            console.log('OGMI: Button found:', $button.length);
-            console.log('OGMI: Result div found:', $result.length);
-            console.log('OGMI: Form HTML:', $form[0]);
             
             // Validate email
             var email = $form.find('#quick-email').val().trim();
@@ -274,20 +253,11 @@
                 role: $form.find('#quick-role').val()
             };
             
-            console.log('OGMI: Sending AJAX data:', ajaxData);
-            console.log('OGMI: AJAX URL:', OGMI_DATA.ajaxUrl);
-            console.log('OGMI: About to send AJAX request...');
-            
             $.ajax({
                 url: OGMI_DATA.ajaxUrl,
                 type: 'POST',
                 data: ajaxData,
-                beforeSend: function() {
-                    console.log('OGMI: AJAX request is being sent now...');
-                },
                 success: function(response) {
-                    console.log('OGMI: AJAX success callback triggered');
-                    console.log('OGMI: Response received:', response);
                     if (response.success) {
                         var data = response.data;
                         var message = data.is_new ? OGMI_DATA.strings.userCreated : OGMI_DATA.strings.userExists;
@@ -304,12 +274,6 @@
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.log('OGMI: AJAX error callback triggered');
-                    console.log('OGMI: XHR object:', xhr);
-                    console.log('OGMI: Status:', status);
-                    console.log('OGMI: Error:', error);
-                    console.log('OGMI: Response text:', xhr.responseText);
-                    
                     var message = OGMI_DATA.strings.error;
                     if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
                         message = xhr.responseJSON.data.message;

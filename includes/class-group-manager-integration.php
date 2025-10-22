@@ -23,8 +23,6 @@ class OGMI_Group_Manager_Integration {
      * Initialize the integration
      */
     public function init() {
-        error_log('OGMI: Group Manager Integration init() called');
-        
         // Hook into BuddyBoss group management - try multiple hooks for better compatibility
         add_action( 'bp_after_group_admin_content', array( $this, 'add_import_interface' ) );
         add_action( 'bp_after_group_members_list', array( $this, 'add_import_interface' ) );
@@ -34,13 +32,6 @@ class OGMI_Group_Manager_Integration {
         // Try alternative approach
         add_action( 'bp_before_group_members_list', array( $this, 'add_import_interface_alternative' ) );
         add_action( 'bp_after_group_members_list', array( $this, 'add_import_interface_alternative' ) );
-        
-        error_log('OGMI: All hooks registered');
-        
-        // Add a test hook that should always fire to see if we can inject content
-        add_action( 'wp_footer', array( $this, 'test_template_injection' ) );
-        
-        // Add debug hook to see what's happening (disabled for production)
         
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
         
@@ -52,52 +43,23 @@ class OGMI_Group_Manager_Integration {
     }
     
     /**
-     * Test method to see if we can inject content
-     */
-    public function test_template_injection() {
-        error_log('OGMI: test_template_injection called');
-        
-        // Only show on group pages
-        if ( ! bp_is_group() ) {
-            error_log('OGMI: Not on group page, skipping test injection');
-            return;
-        }
-        
-        error_log('OGMI: On group page, injecting test content');
-        echo '<!-- OGMI TEST: Template injection working -->';
-    }
-    
-    /**
      * Add import interface to group management
      */
     public function add_import_interface() {
-        error_log('OGMI: add_import_interface called');
-        
         // Only show on members management page
         if ( ! $this->is_members_management_page() ) {
-            error_log('OGMI: Not on members management page, returning');
             return;
         }
         
         // Check permissions
         if ( ! $this->user_can_import() ) {
-            error_log('OGMI: User cannot import, returning');
             return;
         }
         
-        error_log('OGMI: About to include template');
-        
         // Include the template
         $template_path = OGMI_PLUGIN_DIR . 'templates/members-import-interface.php';
-        error_log('OGMI: Template path: ' . $template_path);
-        error_log('OGMI: Template exists: ' . (file_exists( $template_path ) ? 'YES' : 'NO'));
-        
         if ( file_exists( $template_path ) ) {
-            error_log('OGMI: Including template now...');
             include $template_path;
-            error_log('OGMI: Template included successfully');
-        } else {
-            error_log('OGMI: Template file not found!');
         }
     }
     
@@ -105,36 +67,21 @@ class OGMI_Group_Manager_Integration {
      * Alternative method to add import interface - try different approach
      */
     public function add_import_interface_alternative() {
-        error_log('OGMI: add_import_interface_alternative called');
-        
         // Check if we're on a group page and user can import
         if ( ! bp_is_group() || ! $this->user_can_import() ) {
-            error_log('OGMI: Alternative - Not on group page or user cannot import, returning');
             return;
         }
         
         // Check if we're in the members section - BuddyBoss uses 'manage-members'
         $current_action = bp_action_variable( 0 );
-        error_log('OGMI: Alternative - Current action: ' . $current_action);
-        
         if ( $current_action !== 'members' && $current_action !== 'manage-members' && ! empty( $current_action ) ) {
-            error_log('OGMI: Alternative - Not in members section, returning');
             return;
         }
         
-        error_log('OGMI: Alternative - About to include template');
-        
         // Add the interface
         $template_path = OGMI_PLUGIN_DIR . 'templates/members-import-interface.php';
-        error_log('OGMI: Alternative - Template path: ' . $template_path);
-        error_log('OGMI: Alternative - Template exists: ' . (file_exists( $template_path ) ? 'YES' : 'NO'));
-        
         if ( file_exists( $template_path ) ) {
-            error_log('OGMI: Alternative - Including template now...');
             include $template_path;
-            error_log('OGMI: Alternative - Template included successfully');
-        } else {
-            error_log('OGMI: Alternative - Template file not found!');
         }
     }
     
@@ -249,18 +196,13 @@ class OGMI_Group_Manager_Integration {
      * Handle individual member addition
      */
     public function handle_add_member() {
-        error_log('OGMI: handle_add_member called');
-        error_log('OGMI: POST data: ' . print_r($_POST, true));
-        
         // Verify nonce
         if ( ! wp_verify_nonce( $_POST['nonce'], 'ogmi_import' ) ) {
-            error_log('OGMI: Nonce verification failed');
             wp_send_json_error( array( 'message' => __( 'Security check failed', OGMI_TEXT_DOMAIN ) ) );
         }
         
         // Check permissions
         if ( ! $this->user_can_import() ) {
-            error_log('OGMI: User permission check failed');
             wp_send_json_error( array( 'message' => __( 'Insufficient permissions', OGMI_TEXT_DOMAIN ) ) );
         }
         
@@ -270,8 +212,6 @@ class OGMI_Group_Manager_Integration {
         $last_name = sanitize_text_field( $_POST['last_name'] );
         $role = sanitize_key( $_POST['role'] );
         $group_id = (int) $_POST['group_id'];
-        
-        error_log('OGMI: Processed data - email: ' . $email . ', first_name: ' . $first_name . ', last_name: ' . $last_name . ', role: ' . $role . ', group_id: ' . $group_id);
         
         if ( empty( $email ) || ! is_email( $email ) ) {
             wp_send_json_error( array( 'message' => __( 'Invalid email address', OGMI_TEXT_DOMAIN ) ) );
@@ -285,14 +225,10 @@ class OGMI_Group_Manager_Integration {
         $user_manager = new OGMI_User_Manager();
         $result = $user_manager->add_member_to_group( $email, $first_name, $last_name, $group_id, $role );
         
-        error_log('OGMI: User manager result: ' . print_r($result, true));
-        
         if ( is_wp_error( $result ) ) {
-            error_log('OGMI: User manager error: ' . $result->get_error_message());
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
         }
         
-        error_log('OGMI: Sending success response');
         wp_send_json_success( $result );
     }
     
