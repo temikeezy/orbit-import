@@ -160,9 +160,13 @@ class OGMI_Group_Manager_Integration {
      */
     public function enqueue_scripts() {
         // Only enqueue on group management pages
-        if ( ! $this->is_members_management_page() || ! $this->user_can_import() ) {
+        if ( ! $this->is_members_management_page() ) {
+            error_log('OGMI: Not on members management page, skipping script enqueue');
             return;
         }
+        
+        error_log('OGMI: Enqueuing scripts for members management page');
+        error_log('OGMI: User can import: ' . ($this->user_can_import() ? 'YES' : 'NO'));
         
         // Enqueue styles
         wp_enqueue_style(
@@ -181,11 +185,17 @@ class OGMI_Group_Manager_Integration {
             true
         );
         
+        $group_id = bp_get_current_group_id();
+        $nonce = wp_create_nonce( 'ogmi_import' );
+        
+        error_log('OGMI: Group ID: ' . $group_id);
+        error_log('OGMI: Nonce: ' . $nonce);
+        
         // Localize script
         wp_localize_script( 'ogmi-group-manager', 'OGMI', array(
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-            'nonce' => wp_create_nonce( 'ogmi_import' ),
-            'groupId' => bp_get_current_group_id(),
+            'nonce' => $nonce,
+            'groupId' => $group_id,
             'strings' => array(
                 'uploading' => __( 'Uploading...', OGMI_TEXT_DOMAIN ),
                 'processing' => __( 'Processing...', OGMI_TEXT_DOMAIN ),

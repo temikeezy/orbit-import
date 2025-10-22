@@ -45,6 +45,13 @@
          * Initialize drag and drop functionality
          */
         initDropzone: function() {
+            // Check if OGMI object is available
+            if (typeof OGMI === 'undefined') {
+                console.log('OGMI: OGMI object is not defined - script localization failed');
+                return;
+            }
+            
+            console.log('OGMI: OGMI object available:', OGMI);
             var dropzone = document.getElementById('ogmi-dropzone');
             
             if (!dropzone) {
