@@ -248,32 +248,42 @@ class OGMI_Group_Manager_Integration {
      * Handle file upload
      */
     public function handle_file_upload() {
+        error_log('OGMI: File upload handler called');
+        
         // Verify nonce
         if ( ! wp_verify_nonce( $_POST['nonce'], 'ogmi_import' ) ) {
+            error_log('OGMI: Nonce verification failed');
             wp_send_json_error( array( 'message' => __( 'Security check failed', OGMI_TEXT_DOMAIN ) ) );
         }
         
         // Check permissions
         if ( ! $this->user_can_import() ) {
+            error_log('OGMI: User cannot import');
             wp_send_json_error( array( 'message' => __( 'Insufficient permissions', OGMI_TEXT_DOMAIN ) ) );
         }
         
         // Check if file was uploaded
         if ( empty( $_FILES['file'] ) || ! isset( $_FILES['file']['tmp_name'] ) ) {
+            error_log('OGMI: No file uploaded');
             wp_send_json_error( array( 'message' => __( 'No file uploaded', OGMI_TEXT_DOMAIN ) ) );
         }
         
         $file = $_FILES['file'];
         $group_id = (int) $_POST['group_id'];
         
+        error_log('OGMI: Processing file upload for group ' . $group_id);
+        error_log('OGMI: File details: ' . print_r($file, true));
+        
         // Use file processor to handle upload
         $file_processor = new OGMI_File_Processor();
         $result = $file_processor->process_upload( $file, $group_id );
         
         if ( is_wp_error( $result ) ) {
+            error_log('OGMI: File processing error: ' . $result->get_error_message());
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
         }
         
+        error_log('OGMI: File processing successful: ' . print_r($result, true));
         wp_send_json_success( $result );
     }
     

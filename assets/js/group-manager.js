@@ -286,21 +286,29 @@
                 processData: false,
                 contentType: false,
                 success: function(response) {
-                    console.log('OGMI: Upload success:', response);
+                    console.log('OGMI: Upload success response:', response);
+                    console.log('OGMI: Response success:', response.success);
+                    console.log('OGMI: Response data:', response.data);
                     OGMI.hideUploadProgress();
                     
                     if (response.success) {
+                        console.log('OGMI: Processing successful upload');
                         OGMI.currentFileId = response.data.file_id;
                         OGMI.populateMappingOptions(response.data.headers);
                         OGMI.showFilePreview(response.data.preview_rows, response.data.headers);
                         $('#ogmi-mapping-section').show();
+                        console.log('OGMI: Mapping section should now be visible');
                     } else {
                         console.log('OGMI: Upload failed:', response.data);
                         OGMI.showAlert(response.data.message || OGMI.strings.error);
                     }
                 },
-                error: function(xhr) {
-                    console.log('OGMI: Upload error:', xhr);
+                error: function(xhr, status, error) {
+                    console.log('OGMI: Upload error details:');
+                    console.log('OGMI: XHR:', xhr);
+                    console.log('OGMI: Status:', status);
+                    console.log('OGMI: Error:', error);
+                    console.log('OGMI: Response text:', xhr.responseText);
                     OGMI.hideUploadProgress();
                     var message = OGMI.strings.error;
                     if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
