@@ -92,30 +92,19 @@ class OGMI_Group_Manager_Integration {
      * Check if we're on the members management page
      */
     private function is_members_management_page() {
-        error_log('OGMI: Checking if on members management page');
-        error_log('OGMI: bp_is_group_admin_page: ' . (function_exists( 'bp_is_group_admin_page' ) && bp_is_group_admin_page() ? 'YES' : 'NO'));
-        error_log('OGMI: bp_is_group: ' . (function_exists( 'bp_is_group' ) && bp_is_group() ? 'YES' : 'NO'));
-        error_log('OGMI: Current action: ' . (bp_action_variable( 0 ) ?: 'None'));
-        error_log('OGMI: Current URL: ' . $_SERVER['REQUEST_URI']);
-        
         // Check if we're in a group context
         if ( ! function_exists( 'bp_is_group' ) || ! bp_is_group() ) {
-            error_log('OGMI: Not in group context');
             return false;
         }
         
         // Check if we're in group admin
         if ( ! function_exists( 'bp_is_group_admin_page' ) || ! bp_is_group_admin_page() ) {
-            error_log('OGMI: Not in group admin page');
             return false;
         }
         
         // Check the current action - BuddyBoss uses 'manage-members' for the members management page
         $current_action = bp_action_variable( 0 );
-        $is_members_page = $current_action === 'members' || $current_action === 'manage-members' || empty( $current_action );
-        
-        error_log('OGMI: Is members page: ' . ($is_members_page ? 'YES' : 'NO'));
-        return $is_members_page;
+        return $current_action === 'members' || $current_action === 'manage-members' || empty( $current_action );
     }
     
     /**
@@ -175,16 +164,9 @@ class OGMI_Group_Manager_Integration {
      * Enqueue scripts and styles
      */
     public function enqueue_scripts() {
-        error_log('OGMI: enqueue_scripts called');
-        
-        // Temporarily make this more permissive for debugging
         if ( ! function_exists( 'bp_is_group' ) || ! bp_is_group() ) {
-            error_log('OGMI: Not in group context, skipping script enqueue');
             return;
         }
-        
-        error_log('OGMI: In group context, enqueuing scripts');
-        error_log('OGMI: User can import: ' . ($this->user_can_import() ? 'YES' : 'NO'));
         
         // Enqueue styles
         wp_enqueue_style(
@@ -205,9 +187,6 @@ class OGMI_Group_Manager_Integration {
         
         $group_id = bp_get_current_group_id();
         $nonce = wp_create_nonce( 'ogmi_import' );
-        
-        error_log('OGMI: Group ID: ' . $group_id);
-        error_log('OGMI: Nonce: ' . $nonce);
         
         // Localize script
         $localize_data = array(
@@ -231,9 +210,7 @@ class OGMI_Group_Manager_Integration {
             )
         );
         
-        error_log('OGMI: Localize data: ' . print_r($localize_data, true));
         wp_localize_script( 'ogmi-group-manager', 'OGMI', $localize_data );
-        error_log('OGMI: Script localized successfully');
     }
     
     /**
@@ -280,42 +257,28 @@ class OGMI_Group_Manager_Integration {
      * Handle file upload
      */
     public function handle_file_upload() {
-        error_log('OGMI: File upload handler called');
-        error_log('OGMI: POST data: ' . print_r($_POST, true));
-        error_log('OGMI: FILES data: ' . print_r($_FILES, true));
-        
         // Check if nonce exists
         if ( ! isset( $_POST['nonce'] ) ) {
-            error_log('OGMI: No nonce provided');
             wp_send_json_error( array( 'message' => __( 'No security token provided', OGMI_TEXT_DOMAIN ) ) );
         }
         
-        error_log('OGMI: Nonce received: ' . $_POST['nonce']);
-        error_log('OGMI: Nonce verification result: ' . (wp_verify_nonce( $_POST['nonce'], 'ogmi_import' ) ? 'PASS' : 'FAIL'));
-        
         // Verify nonce
         if ( ! wp_verify_nonce( $_POST['nonce'], 'ogmi_import' ) ) {
-            error_log('OGMI: Nonce verification failed');
             wp_send_json_error( array( 'message' => __( 'Security check failed', OGMI_TEXT_DOMAIN ) ) );
         }
         
         // Check permissions
         if ( ! $this->user_can_import() ) {
-            error_log('OGMI: User cannot import');
             wp_send_json_error( array( 'message' => __( 'Insufficient permissions', OGMI_TEXT_DOMAIN ) ) );
         }
         
         // Check if file was uploaded
         if ( empty( $_FILES['file'] ) || ! isset( $_FILES['file']['tmp_name'] ) ) {
-            error_log('OGMI: No file uploaded');
             wp_send_json_error( array( 'message' => __( 'No file uploaded', OGMI_TEXT_DOMAIN ) ) );
         }
         
         $file = $_FILES['file'];
         $group_id = (int) $_POST['group_id'];
-        
-        error_log('OGMI: Processing file upload for group ' . $group_id);
-        error_log('OGMI: File details: ' . print_r($file, true));
         
         // Use file processor to handle upload
         $file_processor = new OGMI_File_Processor();
