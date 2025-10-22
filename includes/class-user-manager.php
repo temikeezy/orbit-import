@@ -16,12 +16,16 @@ class OGMI_User_Manager {
      * Add member to group
      */
     public function add_member_to_group( $email, $first_name, $last_name, $group_id, $role = 'member' ) {
+        error_log('OGMI: add_member_to_group called with email: ' . $email . ', first_name: ' . $first_name . ', last_name: ' . $last_name . ', group_id: ' . $group_id . ', role: ' . $role);
+        
         // Validate inputs
         if ( empty( $email ) || ! is_email( $email ) ) {
+            error_log('OGMI: Invalid email address: ' . $email);
             return new WP_Error( 'invalid_email', __( 'Invalid email address', OGMI_TEXT_DOMAIN ) );
         }
         
         if ( ! $group_id || ! $this->group_exists( $group_id ) ) {
+            error_log('OGMI: Invalid group ID: ' . $group_id);
             return new WP_Error( 'invalid_group', __( 'Invalid group', OGMI_TEXT_DOMAIN ) );
         }
         
@@ -34,29 +38,39 @@ class OGMI_User_Manager {
         $is_new_user = false;
         
         if ( ! $user ) {
+            error_log('OGMI: User does not exist, creating new user for email: ' . $email);
             // Create new user
             $user_result = $this->create_user( $email, $first_name, $last_name );
             if ( is_wp_error( $user_result ) ) {
+                error_log('OGMI: User creation failed: ' . $user_result->get_error_message());
                 return $user_result;
             }
             
             $user = $user_result;
             $is_new_user = true;
+            error_log('OGMI: New user created successfully with ID: ' . $user->ID);
+        } else {
+            error_log('OGMI: User already exists with ID: ' . $user->ID);
         }
         
         // Check if user is already a member of the group
         if ( $this->is_user_member_of_group( $user->ID, $group_id ) ) {
+            error_log('OGMI: User is already a member of group: ' . $group_id);
             return new WP_Error( 'already_member', __( 'User is already a member of this group', OGMI_TEXT_DOMAIN ) );
         }
         
         // Add user to group
+        error_log('OGMI: Adding user ' . $user->ID . ' to group ' . $group_id);
         $group_result = $this->add_user_to_group( $user->ID, $group_id );
         if ( is_wp_error( $group_result ) ) {
+            error_log('OGMI: Failed to add user to group: ' . $group_result->get_error_message());
             return $group_result;
         }
+        error_log('OGMI: Successfully added user to group');
         
         // Set user role in group
         if ( $role !== 'member' ) {
+            error_log('OGMI: Setting user role to: ' . $role);
             $this->set_user_group_role( $user->ID, $group_id, $role );
         }
         
