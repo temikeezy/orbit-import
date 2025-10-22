@@ -284,12 +284,21 @@
             formData.append('group_id', OGMI.groupId);
             formData.append('file', file);
             
+            // Check if OGMI object is available
+            if (typeof OGMI === 'undefined') {
+                console.log('OGMI: OGMI object is undefined - script localization failed');
+                alert('Script configuration error. Please refresh the page and try again.');
+                return;
+            }
+            
             console.log('OGMI: Nonce being sent:', OGMI.nonce);
             console.log('OGMI: Group ID being sent:', OGMI.groupId);
             
             // Check if we have a valid nonce
             if (!OGMI.nonce) {
                 console.log('OGMI: No nonce available, this will likely fail');
+                alert('Security token missing. Please refresh the page and try again.');
+                return;
             }
             
             // Ensure we have the AJAX URL

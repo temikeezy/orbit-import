@@ -34,7 +34,7 @@ class OGMI_Group_Manager_Integration {
         add_action( 'bp_after_group_members_list', array( $this, 'add_import_interface_alternative' ) );
         
         // Add debug hook to see what's happening (disabled for production)
-        // add_action( 'wp_footer', array( $this, 'debug_info' ) );
+        add_action( 'wp_footer', array( $this, 'debug_info' ) );
         
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
         
