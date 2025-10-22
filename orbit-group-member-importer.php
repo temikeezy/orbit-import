@@ -2,7 +2,7 @@
 /**
  * Plugin Name: ORBIT Group Member Importer
  * Description: Import members directly into BuddyBoss/BuddyPress groups from the group management interface. Add individual members or bulk import from CSV/Excel files.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: Ilorin Innovation Hub
  * Text Domain: orbit-group-importer
  * Domain Path: /languages
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'OGMI_PLUGIN_FILE', __FILE__ );
 define( 'OGMI_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OGMI_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-define( 'OGMI_VERSION', '1.0.4' );
+define( 'OGMI_VERSION', '1.1.0' );
 define( 'OGMI_TEXT_DOMAIN', 'orbit-group-importer' );
 
 /**
