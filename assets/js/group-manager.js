@@ -504,6 +504,8 @@
                 },
                 success: function(response) {
                     console.log('OGMI: Batch AJAX success response:', response);
+                    console.log('OGMI: Response success:', response.success);
+                    console.log('OGMI: Response data:', response.data);
                     
                     if (response.success) {
                         var data = response.data;
@@ -523,6 +525,8 @@
                             OGMI.completeImport(data);
                         }
                     } else {
+                        console.log('OGMI: Batch processing failed:', response.data);
+                        console.log('OGMI: Error message:', response.data.message);
                         OGMI.showAlert(response.data.message || OGMI.strings.error);
                         OGMI.isProcessing = false;
                     }
