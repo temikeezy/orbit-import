@@ -251,6 +251,10 @@
          */
         uploadFile: function(file) {
             console.log('OGMI: uploadFile called with:', file);
+            console.log('OGMI: Full OGMI object:', OGMI);
+            console.log('OGMI: OGMI.nonce:', OGMI.nonce);
+            console.log('OGMI: OGMI.groupId:', OGMI.groupId);
+            console.log('OGMI: OGMI.ajaxUrl:', OGMI.ajaxUrl);
             
             if (!file) {
                 console.log('OGMI: No file provided');
