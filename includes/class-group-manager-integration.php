@@ -198,13 +198,18 @@ class OGMI_Group_Manager_Integration {
      * Handle individual member addition
      */
     public function handle_add_member() {
+        error_log('OGMI: handle_add_member called');
+        error_log('OGMI: POST data: ' . print_r($_POST, true));
+        
         // Verify nonce
         if ( ! wp_verify_nonce( $_POST['nonce'], 'ogmi_import' ) ) {
+            error_log('OGMI: Nonce verification failed');
             wp_send_json_error( array( 'message' => __( 'Security check failed', OGMI_TEXT_DOMAIN ) ) );
         }
         
         // Check permissions
         if ( ! $this->user_can_import() ) {
+            error_log('OGMI: User permission check failed');
             wp_send_json_error( array( 'message' => __( 'Insufficient permissions', OGMI_TEXT_DOMAIN ) ) );
         }
         
@@ -214,6 +219,8 @@ class OGMI_Group_Manager_Integration {
         $last_name = sanitize_text_field( $_POST['last_name'] );
         $role = sanitize_key( $_POST['role'] );
         $group_id = (int) $_POST['group_id'];
+        
+        error_log('OGMI: Processed data - email: ' . $email . ', first_name: ' . $first_name . ', last_name: ' . $last_name . ', role: ' . $role . ', group_id: ' . $group_id);
         
         if ( empty( $email ) || ! is_email( $email ) ) {
             wp_send_json_error( array( 'message' => __( 'Invalid email address', OGMI_TEXT_DOMAIN ) ) );
@@ -227,10 +234,14 @@ class OGMI_Group_Manager_Integration {
         $user_manager = new OGMI_User_Manager();
         $result = $user_manager->add_member_to_group( $email, $first_name, $last_name, $group_id, $role );
         
+        error_log('OGMI: User manager result: ' . print_r($result, true));
+        
         if ( is_wp_error( $result ) ) {
+            error_log('OGMI: User manager error: ' . $result->get_error_message());
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
         }
         
+        error_log('OGMI: Sending success response');
         wp_send_json_success( $result );
     }
     
