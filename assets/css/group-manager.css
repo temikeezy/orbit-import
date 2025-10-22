@@ -14,6 +14,113 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* Wizard Step Indicator */
+.ogmi-step-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 24px 0 32px 0;
+    padding: 0 20px;
+}
+
+.ogmi-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    flex: 1;
+    max-width: 150px;
+}
+
+.ogmi-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: #e1e5e9;
+    z-index: 1;
+}
+
+.ogmi-step.ogmi-step-completed:not(:last-child)::after {
+    background: #00a32a;
+}
+
+.ogmi-step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e1e5e9;
+    color: #646970;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    position: relative;
+    z-index: 2;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+}
+
+.ogmi-step.ogmi-step-active .ogmi-step-number {
+    background: #2271b1;
+    color: #fff;
+}
+
+.ogmi-step.ogmi-step-completed .ogmi-step-number {
+    background: #00a32a;
+    color: #fff;
+}
+
+.ogmi-step.ogmi-step-completed .ogmi-step-number::before {
+    content: '✓';
+    font-size: 16px;
+}
+
+.ogmi-step-label {
+    font-size: 12px;
+    color: #646970;
+    text-align: center;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.ogmi-step.ogmi-step-active .ogmi-step-label {
+    color: #2271b1;
+    font-weight: 600;
+}
+
+.ogmi-step.ogmi-step-completed .ogmi-step-label {
+    color: #00a32a;
+    font-weight: 600;
+}
+
+/* Wizard Steps */
+.ogmi-wizard-step {
+    min-height: 300px;
+}
+
+.ogmi-step-header {
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+.ogmi-step-header h5 {
+    margin: 0 0 8px 0;
+    color: #1d2327;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.ogmi-step-header p {
+    margin: 0;
+    color: #646970;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
 .ogmi-import-header {
     margin-bottom: 24px;
     padding-bottom: 16px;

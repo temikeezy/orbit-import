@@ -11,6 +11,7 @@
         currentFileId: null,
         currentMapping: {},
         isProcessing: false,
+        currentStep: 1,
         
         /**
          * Initialize the plugin
@@ -18,6 +19,49 @@
         init: function() {
             this.bindEvents();
             this.initDropzone();
+        },
+        
+        /**
+         * Show specific wizard step
+         */
+        showStep: function(step) {
+            console.log('OGMI: Showing step:', step);
+            
+            // Hide all steps
+            $('.ogmi-wizard-step').hide();
+            
+            // Show the requested step
+            $('#ogmi-step-' + step).show();
+            
+            // Update step indicator
+            $('.ogmi-step').removeClass('ogmi-step-active ogmi-step-completed');
+            $('.ogmi-step[data-step="' + step + '"]').addClass('ogmi-step-active');
+            
+            // Mark previous steps as completed
+            for (var i = 1; i < step; i++) {
+                $('.ogmi-step[data-step="' + i + '"]').addClass('ogmi-step-completed');
+            }
+            
+            this.currentStep = step;
+        },
+        
+        /**
+         * Reset wizard to step 1
+         */
+        resetWizard: function() {
+            console.log('OGMI: Resetting wizard to step 1');
+            this.currentFileId = null;
+            this.currentMapping = {};
+            this.isProcessing = false;
+            this.currentStep = 1;
+            
+            // Reset all form elements
+            $('#ogmi-file-input').val('');
+            $('.ogmi-mapping-item select').val('');
+            this.resetStats();
+            
+            // Show step 1
+            this.showStep(1);
         },
         
         /**
@@ -40,9 +84,15 @@
             $(document).on('click', '#ogmi-start-import', function() {
                 OGMI.startImport();
             });
-            $(document).on('click', '#ogmi-cancel-import', this.cancelImport);
-            $(document).on('click', '#ogmi-close-import', this.closeImport);
-            $(document).on('click', '#ogmi-start-new-import', this.startNewImport);
+            $(document).on('click', '#ogmi-back-to-upload', function() {
+                OGMI.showStep(1);
+            });
+            $(document).on('click', '#ogmi-start-new-import', function() {
+                OGMI.resetWizard();
+            });
+            $(document).on('click', '#ogmi-close-import', function() {
+                OGMI.closeImport();
+            });
         },
         
         /**
@@ -349,8 +399,9 @@
                         OGMI.currentFileId = response.data.file_id;
                         OGMI.populateMappingOptions(response.data.headers);
                         OGMI.showFilePreview(response.data.preview_rows, response.data.headers);
-                        $('#ogmi-mapping-section').show();
-                        console.log('OGMI: Mapping section should now be visible');
+                        
+                        // Move to step 2 (mapping)
+                        OGMI.showStep(2);
                     } else {
                         console.log('OGMI: Upload failed:', response.data);
                         var errorMessage = OGMI.strings.error;
@@ -466,8 +517,9 @@
             
             console.log('OGMI: Starting import process');
             OGMI.isProcessing = true;
-            $('#ogmi-progress-section').show();
-            $('#ogmi-mapping-section').hide();
+            
+            // Move to step 3 (import progress)
+            OGMI.showStep(3);
             OGMI.resetStats();
             OGMI.processBatch(0);
         },
@@ -551,8 +603,9 @@
          */
         completeImport: function(finalData) {
             OGMI.isProcessing = false;
-            $('#ogmi-results-section').show();
-            $('#ogmi-progress-section').hide();
+            
+            // Move to step 4 (results)
+            OGMI.showStep(4);
             
             // Update final stats
             $('#ogmi-final-created').text(finalData.created || 0);
@@ -584,9 +637,9 @@
          * Close import
          */
         closeImport: function() {
-            $('#ogmi-results-section').hide();
             $('#ogmi-bulk-import-section').slideUp();
             $('#ogmi-toggle-bulk-import').text('Bulk Import from CSV');
+            this.resetWizard();
         },
         
         /**

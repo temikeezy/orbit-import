@@ -75,37 +75,62 @@ $group = groups_get_group( $group_id );
             <p><?php echo esc_html__( 'Upload a CSV file to add multiple members at once.', OGMI_TEXT_DOMAIN ); ?></p>
         </div>
 
-        <!-- Download Sample File -->
-        <div class="ogmi-download-sample">
-            <p><?php echo esc_html__( 'Download sample CSV file to understand the format:', OGMI_TEXT_DOMAIN ); ?></p>
-            <a href="<?php echo esc_url( OGMI_PLUGIN_URL . 'samples/sample.csv' ); ?>" class="ogmi-button ogmi-button-small" download>
-                <?php echo esc_html__( 'Download Sample CSV', OGMI_TEXT_DOMAIN ); ?>
-            </a>
-        </div>
-
-        <!-- File Upload -->
-        <div class="ogmi-upload-section">
-            <div id="ogmi-dropzone" class="ogmi-dropzone">
-                <div class="ogmi-dropzone-content">
-                    <span class="ogmi-dropzone-icon">📁</span>
-                    <p><?php echo esc_html__( 'Drag & drop your CSV file here, or click to browse', OGMI_TEXT_DOMAIN ); ?></p>
-                    <p class="ogmi-dropzone-hint"><?php echo esc_html__( 'Supports CSV files up to 10MB', OGMI_TEXT_DOMAIN ); ?></p>
-                </div>
-                <input type="file" id="ogmi-file-input" accept=".csv" style="display: none;">
+        <!-- Step Indicator -->
+        <div class="ogmi-step-indicator">
+            <div class="ogmi-step ogmi-step-active" data-step="1">
+                <span class="ogmi-step-number">1</span>
+                <span class="ogmi-step-label"><?php echo esc_html__( 'Upload File', OGMI_TEXT_DOMAIN ); ?></span>
             </div>
-            
-            <div id="ogmi-upload-progress" class="ogmi-progress" style="display: none;">
-                <div class="ogmi-progress-bar">
-                    <div class="ogmi-progress-fill"></div>
-                </div>
-                <span class="ogmi-progress-text"><?php echo esc_html__( 'Uploading...', OGMI_TEXT_DOMAIN ); ?></span>
+            <div class="ogmi-step" data-step="2">
+                <span class="ogmi-step-number">2</span>
+                <span class="ogmi-step-label"><?php echo esc_html__( 'Map Columns', OGMI_TEXT_DOMAIN ); ?></span>
+            </div>
+            <div class="ogmi-step" data-step="3">
+                <span class="ogmi-step-number">3</span>
+                <span class="ogmi-step-label"><?php echo esc_html__( 'Import', OGMI_TEXT_DOMAIN ); ?></span>
+            </div>
+            <div class="ogmi-step" data-step="4">
+                <span class="ogmi-step-number">4</span>
+                <span class="ogmi-step-label"><?php echo esc_html__( 'Complete', OGMI_TEXT_DOMAIN ); ?></span>
             </div>
         </div>
 
-        <!-- Column Mapping (Initially Hidden) -->
-        <div class="ogmi-mapping-section" id="ogmi-mapping-section" style="display: none;">
-            <h5><?php echo esc_html__( 'Map Your File Columns', OGMI_TEXT_DOMAIN ); ?></h5>
-            <p><?php echo esc_html__( 'Tell us which columns contain the required information.', OGMI_TEXT_DOMAIN ); ?></p>
+        <!-- Step 1: File Upload -->
+        <div class="ogmi-wizard-step" id="ogmi-step-1">
+            <!-- Download Sample File -->
+            <div class="ogmi-download-sample">
+                <p><?php echo esc_html__( 'Download sample CSV file to understand the format:', OGMI_TEXT_DOMAIN ); ?></p>
+                <a href="<?php echo esc_url( OGMI_PLUGIN_URL . 'samples/sample.csv' ); ?>" class="ogmi-button ogmi-button-small" download>
+                    <?php echo esc_html__( 'Download Sample CSV', OGMI_TEXT_DOMAIN ); ?>
+                </a>
+            </div>
+
+            <!-- File Upload -->
+            <div class="ogmi-upload-section">
+                <div id="ogmi-dropzone" class="ogmi-dropzone">
+                    <div class="ogmi-dropzone-content">
+                        <span class="ogmi-dropzone-icon">📁</span>
+                        <p><?php echo esc_html__( 'Drag & drop your CSV file here, or click to browse', OGMI_TEXT_DOMAIN ); ?></p>
+                        <p class="ogmi-dropzone-hint"><?php echo esc_html__( 'Supports CSV files up to 10MB', OGMI_TEXT_DOMAIN ); ?></p>
+                    </div>
+                    <input type="file" id="ogmi-file-input" accept=".csv" style="display: none;">
+                </div>
+                
+                <div id="ogmi-upload-progress" class="ogmi-progress" style="display: none;">
+                    <div class="ogmi-progress-bar">
+                        <div class="ogmi-progress-fill"></div>
+                    </div>
+                    <span class="ogmi-progress-text"><?php echo esc_html__( 'Uploading...', OGMI_TEXT_DOMAIN ); ?></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Column Mapping -->
+        <div class="ogmi-wizard-step" id="ogmi-step-2" style="display: none;">
+            <div class="ogmi-step-header">
+                <h5><?php echo esc_html__( 'Map Your File Columns', OGMI_TEXT_DOMAIN ); ?></h5>
+                <p><?php echo esc_html__( 'Tell us which columns contain the required information.', OGMI_TEXT_DOMAIN ); ?></p>
+            </div>
             
             <div class="ogmi-mapping-grid">
                 <div class="ogmi-mapping-item">
@@ -128,7 +153,6 @@ $group = groups_get_group( $group_id );
                         <option value=""><?php echo esc_html__( 'Select column...', OGMI_TEXT_DOMAIN ); ?></option>
                     </select>
                 </div>
-                
             </div>
             
             <div class="ogmi-preview-section">
@@ -137,18 +161,21 @@ $group = groups_get_group( $group_id );
             </div>
             
             <div class="ogmi-form-actions">
-                <button type="button" id="ogmi-start-import" class="ogmi-button ogmi-button-primary">
-                    <?php echo esc_html__( 'Start Import', OGMI_TEXT_DOMAIN ); ?>
+                <button type="button" id="ogmi-back-to-upload" class="ogmi-button ogmi-button-secondary">
+                    <?php echo esc_html__( '← Back to Upload', OGMI_TEXT_DOMAIN ); ?>
                 </button>
-                <button type="button" id="ogmi-cancel-import" class="ogmi-button ogmi-button-secondary">
-                    <?php echo esc_html__( 'Cancel', OGMI_TEXT_DOMAIN ); ?>
+                <button type="button" id="ogmi-start-import" class="ogmi-button ogmi-button-primary">
+                    <?php echo esc_html__( 'Start Import →', OGMI_TEXT_DOMAIN ); ?>
                 </button>
             </div>
         </div>
 
-        <!-- Import Progress (Initially Hidden) -->
-        <div class="ogmi-progress-section" id="ogmi-progress-section" style="display: none;">
-            <h5><?php echo esc_html__( 'Importing Members...', OGMI_TEXT_DOMAIN ); ?></h5>
+        <!-- Step 3: Import Progress -->
+        <div class="ogmi-wizard-step" id="ogmi-step-3" style="display: none;">
+            <div class="ogmi-step-header">
+                <h5><?php echo esc_html__( 'Importing Members...', OGMI_TEXT_DOMAIN ); ?></h5>
+                <p><?php echo esc_html__( 'Please wait while we process your file.', OGMI_TEXT_DOMAIN ); ?></p>
+            </div>
             
             <div class="ogmi-progress-container">
                 <div class="ogmi-progress-bar">
@@ -179,9 +206,12 @@ $group = groups_get_group( $group_id );
             <div id="ogmi-import-log" class="ogmi-import-log"></div>
         </div>
 
-        <!-- Import Results (Initially Hidden) -->
-        <div class="ogmi-results-section" id="ogmi-results-section" style="display: none;">
-            <h5><?php echo esc_html__( 'Import Complete', OGMI_TEXT_DOMAIN ); ?></h5>
+        <!-- Step 4: Import Results -->
+        <div class="ogmi-wizard-step" id="ogmi-step-4" style="display: none;">
+            <div class="ogmi-step-header">
+                <h5><?php echo esc_html__( 'Import Complete', OGMI_TEXT_DOMAIN ); ?></h5>
+                <p><?php echo esc_html__( 'Your members have been successfully imported.', OGMI_TEXT_DOMAIN ); ?></p>
+            </div>
             
             <div class="ogmi-results-summary">
                 <div class="ogmi-result-item ogmi-result-success">
