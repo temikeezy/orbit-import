@@ -298,13 +298,18 @@ class OGMI_Group_Manager_Integration {
      * Handle batch processing
      */
     public function handle_batch_process() {
+        error_log('OGMI: handle_batch_process called');
+        error_log('OGMI: POST data: ' . print_r($_POST, true));
+        
         // Verify nonce
         if ( ! wp_verify_nonce( $_POST['nonce'], 'ogmi_import' ) ) {
+            error_log('OGMI: Nonce verification failed');
             wp_send_json_error( array( 'message' => __( 'Security check failed', OGMI_TEXT_DOMAIN ) ) );
         }
         
         // Check permissions
         if ( ! $this->user_can_import() ) {
+            error_log('OGMI: User permission check failed');
             wp_send_json_error( array( 'message' => __( 'Insufficient permissions', OGMI_TEXT_DOMAIN ) ) );
         }
         
@@ -314,16 +319,22 @@ class OGMI_Group_Manager_Integration {
         $offset = (int) $_POST['offset'];
         $group_id = (int) $_POST['group_id'];
         
+        error_log('OGMI: Processing batch - file_id: ' . $file_id . ', mapping: ' . print_r($mapping, true) . ', batch_size: ' . $batch_size . ', offset: ' . $offset . ', group_id: ' . $group_id);
+        
         // Use file processor to process batch
         $file_processor = new OGMI_File_Processor();
         $result = $file_processor->process_batch( $file_id, $mapping, $batch_size, $offset, $group_id );
         
+        error_log('OGMI: Batch processing result: ' . print_r($result, true));
+        
         if ( is_wp_error( $result ) ) {
+            error_log('OGMI: Batch processing error: ' . $result->get_error_message());
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
         }
         
         // If import is complete, clean up the file
         if ( isset( $result['has_more'] ) && ! $result['has_more'] ) {
+            error_log('OGMI: Import complete, cleaning up file');
             $file_processor->cleanup_file( $file_id );
         }
         

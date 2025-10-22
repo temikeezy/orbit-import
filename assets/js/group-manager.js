@@ -442,16 +442,22 @@
          * Start import
          */
         startImport: function() {
+            console.log('OGMI: startImport called');
+            console.log('OGMI: Current mapping:', OGMI.currentMapping);
+            
             if (OGMI.isProcessing) {
+                console.log('OGMI: Already processing, returning');
                 return;
             }
             
             // Validate mapping
             if (!OGMI.currentMapping.email && OGMI.currentMapping.email !== 0) {
+                console.log('OGMI: Email mapping validation failed');
                 OGMI.showAlert('Email mapping is required');
                 return;
             }
             
+            console.log('OGMI: Starting import process');
             OGMI.isProcessing = true;
             $('#ogmi-progress-section').show();
             $('#ogmi-mapping-section').hide();
@@ -463,34 +469,49 @@
          * Process batch
          */
         processBatch: function(offset) {
+            console.log('OGMI: processBatch called with offset:', offset);
+            console.log('OGMI: OGMI_DATA available:', typeof OGMI_DATA !== 'undefined');
+            
             if (!OGMI.isProcessing) {
+                console.log('OGMI: Not processing, returning');
                 return;
             }
             
+            var nonce = typeof OGMI_DATA !== 'undefined' ? OGMI_DATA.nonce : '';
+            var groupId = typeof OGMI_DATA !== 'undefined' ? OGMI_DATA.groupId : '';
+            var ajaxUrl = typeof OGMI_DATA !== 'undefined' ? OGMI_DATA.ajaxUrl : (typeof ajaxurl !== 'undefined' ? ajaxurl : '/wp-admin/admin-ajax.php');
+            
+            console.log('OGMI: Sending batch request with nonce:', nonce, 'groupId:', groupId, 'ajaxUrl:', ajaxUrl);
+            
             $.ajax({
-                url: OGMI.ajaxUrl,
+                url: ajaxUrl,
                 type: 'POST',
                 data: {
                     action: 'ogmi_process_batch',
-                    nonce: OGMI.nonce,
+                    nonce: nonce,
                     file_id: OGMI.currentFileId,
                     mapping: OGMI.currentMapping,
                     batch_size: 10,
                     offset: offset,
-                    group_id: OGMI.groupId
+                    group_id: groupId
                 },
                 success: function(response) {
+                    console.log('OGMI: Batch AJAX success response:', response);
+                    
                     if (response.success) {
                         var data = response.data;
+                        console.log('OGMI: Batch data:', data);
                         OGMI.updateStats(data);
                         OGMI.addLogEntry('Processed ' + data.processed + ' rows', 'info');
                         
                         if (data.has_more) {
+                            console.log('OGMI: More data to process, continuing...');
                             // Continue processing
                             setTimeout(function() {
                                 OGMI.processBatch(data.offset);
                             }, 500);
                         } else {
+                            console.log('OGMI: Import complete');
                             // Import complete
                             OGMI.completeImport(data);
                         }
@@ -500,6 +521,10 @@
                     }
                 },
                 error: function(xhr) {
+                    console.log('OGMI: Batch AJAX error:', xhr);
+                    console.log('OGMI: Error status:', xhr.status);
+                    console.log('OGMI: Error response:', xhr.responseText);
+                    
                     var message = OGMI.strings.error;
                     if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
                         message = xhr.responseJSON.data.message;
