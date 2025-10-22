@@ -249,6 +249,8 @@ class OGMI_Group_Manager_Integration {
      */
     public function handle_file_upload() {
         error_log('OGMI: File upload handler called');
+        error_log('OGMI: POST data: ' . print_r($_POST, true));
+        error_log('OGMI: FILES data: ' . print_r($_FILES, true));
         
         // Verify nonce
         if ( ! wp_verify_nonce( $_POST['nonce'], 'ogmi_import' ) ) {

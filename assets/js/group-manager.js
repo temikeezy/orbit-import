@@ -277,19 +277,37 @@
             formData.append('group_id', OGMI.groupId);
             formData.append('file', file);
             
-            console.log('OGMI: Sending AJAX request to:', OGMI.ajaxUrl);
+            // Ensure we have the AJAX URL
+            var ajaxUrl = OGMI.ajaxUrl || ajaxurl || '/wp-admin/admin-ajax.php';
+            console.log('OGMI: Sending AJAX request to:', ajaxUrl);
             
             $.ajax({
-                url: OGMI.ajaxUrl,
+                url: ajaxUrl,
                 type: 'POST',
                 data: formData,
                 processData: false,
                 contentType: false,
                 success: function(response) {
                     console.log('OGMI: Upload success response:', response);
+                    console.log('OGMI: Response type:', typeof response);
+                    OGMI.hideUploadProgress();
+                    
+                    // Check if response is HTML (error page) instead of JSON
+                    if (typeof response === 'string' && response.includes('<!doctype html>')) {
+                        console.log('OGMI: Server returned HTML instead of JSON - likely an error');
+                        OGMI.showAlert('Server error: Received HTML response instead of JSON. Please check your WordPress configuration.');
+                        return;
+                    }
+                    
+                    // Check if response is a proper JSON object
+                    if (typeof response !== 'object' || response === null) {
+                        console.log('OGMI: Invalid response format:', response);
+                        OGMI.showAlert('Invalid response from server. Please try again.');
+                        return;
+                    }
+                    
                     console.log('OGMI: Response success:', response.success);
                     console.log('OGMI: Response data:', response.data);
-                    OGMI.hideUploadProgress();
                     
                     if (response.success) {
                         console.log('OGMI: Processing successful upload');
@@ -300,7 +318,11 @@
                         console.log('OGMI: Mapping section should now be visible');
                     } else {
                         console.log('OGMI: Upload failed:', response.data);
-                        OGMI.showAlert(response.data.message || OGMI.strings.error);
+                        var errorMessage = OGMI.strings.error;
+                        if (response.data && response.data.message) {
+                            errorMessage = response.data.message;
+                        }
+                        OGMI.showAlert(errorMessage);
                     }
                 },
                 error: function(xhr, status, error) {
