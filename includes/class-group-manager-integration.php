@@ -211,7 +211,7 @@ class OGMI_Group_Manager_Integration {
             )
         );
         
-        wp_localize_script( 'ogmi-group-manager', 'OGMI', $localize_data );
+        wp_localize_script( 'ogmi-group-manager', 'OGMI_DATA', $localize_data );
     }
     
     /**

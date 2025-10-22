@@ -252,9 +252,10 @@
         uploadFile: function(file) {
             console.log('OGMI: uploadFile called with:', file);
             console.log('OGMI: Full OGMI object:', OGMI);
-            console.log('OGMI: OGMI.nonce:', OGMI.nonce);
-            console.log('OGMI: OGMI.groupId:', OGMI.groupId);
-            console.log('OGMI: OGMI.ajaxUrl:', OGMI.ajaxUrl);
+            console.log('OGMI: OGMI_DATA object:', typeof OGMI_DATA !== 'undefined' ? OGMI_DATA : 'undefined');
+            console.log('OGMI: OGMI_DATA.nonce:', typeof OGMI_DATA !== 'undefined' ? OGMI_DATA.nonce : 'undefined');
+            console.log('OGMI: OGMI_DATA.groupId:', typeof OGMI_DATA !== 'undefined' ? OGMI_DATA.groupId : 'undefined');
+            console.log('OGMI: OGMI_DATA.ajaxUrl:', typeof OGMI_DATA !== 'undefined' ? OGMI_DATA.ajaxUrl : 'undefined');
             
             if (!file) {
                 console.log('OGMI: No file provided');
@@ -284,8 +285,8 @@
             // Upload file
             var formData = new FormData();
             formData.append('action', 'ogmi_upload_file');
-            formData.append('nonce', OGMI.nonce);
-            formData.append('group_id', OGMI.groupId);
+            formData.append('nonce', typeof OGMI_DATA !== 'undefined' ? OGMI_DATA.nonce : '');
+            formData.append('group_id', typeof OGMI_DATA !== 'undefined' ? OGMI_DATA.groupId : '');
             formData.append('file', file);
             
             // Check if OGMI object is available
@@ -295,18 +296,20 @@
                 return;
             }
             
-            console.log('OGMI: Nonce being sent:', OGMI.nonce);
-            console.log('OGMI: Group ID being sent:', OGMI.groupId);
+            var nonce = typeof OGMI_DATA !== 'undefined' ? OGMI_DATA.nonce : '';
+            var groupId = typeof OGMI_DATA !== 'undefined' ? OGMI_DATA.groupId : '';
+            var ajaxUrl = typeof OGMI_DATA !== 'undefined' ? OGMI_DATA.ajaxUrl : (typeof ajaxurl !== 'undefined' ? ajaxurl : '/wp-admin/admin-ajax.php');
+            
+            console.log('OGMI: Nonce being sent:', nonce);
+            console.log('OGMI: Group ID being sent:', groupId);
+            console.log('OGMI: AJAX URL:', ajaxUrl);
             
             // Check if we have a valid nonce
-            if (!OGMI.nonce) {
+            if (!nonce) {
                 console.log('OGMI: No nonce available, this will likely fail');
                 alert('Security token missing. Please refresh the page and try again.');
                 return;
             }
-            
-            // Ensure we have the AJAX URL
-            var ajaxUrl = OGMI.ajaxUrl || ajaxurl || '/wp-admin/admin-ajax.php';
             console.log('OGMI: Sending AJAX request to:', ajaxUrl);
             
             $.ajax({
