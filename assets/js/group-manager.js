@@ -45,47 +45,60 @@
          * Initialize drag and drop functionality
          */
         initDropzone: function() {
-            var $dropzone = $('#ogmi-dropzone');
-            var $fileInput = $('#ogmi-file-input');
+            var dropzone = document.getElementById('ogmi-dropzone');
             
-            if ($dropzone.length === 0) {
+            if (!dropzone) {
                 console.log('OGMI: Dropzone not found');
                 return;
             }
             
             // Check if already initialized
-            if ($dropzone.data('ogmi-initialized')) {
+            if (dropzone.dataset.ogmiInitialized === 'true') {
                 console.log('OGMI: Dropzone already initialized');
                 return;
             }
             
-            console.log('OGMI: Initializing dropzone');
+            console.log('OGMI: Initializing dropzone with vanilla JS');
             
             // Mark as initialized
-            $dropzone.data('ogmi-initialized', true);
+            dropzone.dataset.ogmiInitialized = 'true';
             
-            // Drag and drop events
-            $dropzone.on('dragover.ogmi dragenter.ogmi', function(e) {
+            // Drag and drop events using vanilla JavaScript
+            dropzone.addEventListener('dragover', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                $(this).addClass('dragover');
+                this.classList.add('dragover');
                 console.log('OGMI: Drag over');
             });
             
-            $dropzone.on('dragleave.ogmi dragend.ogmi', function(e) {
+            dropzone.addEventListener('dragenter', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                $(this).removeClass('dragover');
+                this.classList.add('dragover');
+                console.log('OGMI: Drag enter');
+            });
+            
+            dropzone.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.remove('dragover');
                 console.log('OGMI: Drag leave');
             });
             
-            $dropzone.on('drop.ogmi', function(e) {
+            dropzone.addEventListener('dragend', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                $(this).removeClass('dragover');
+                this.classList.remove('dragover');
+                console.log('OGMI: Drag end');
+            });
+            
+            dropzone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.remove('dragover');
                 
                 console.log('OGMI: File dropped');
-                var files = e.originalEvent.dataTransfer.files;
+                var files = e.dataTransfer.files;
                 if (files.length > 0) {
                     console.log('OGMI: Files found:', files.length);
                     var file = files[0];
@@ -93,38 +106,33 @@
                 }
             });
             
-            // Click to browse - use a different approach to avoid conflicts
-            $dropzone.on('click.ogmi', function(e) {
+            // Click to browse using vanilla JavaScript
+            dropzone.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 console.log('OGMI: Dropzone clicked');
                 
-                // Create a new file input element to avoid conflicts
+                // Create a new file input element
                 var newFileInput = document.createElement('input');
                 newFileInput.type = 'file';
                 newFileInput.accept = '.csv';
                 newFileInput.style.display = 'none';
                 
-                newFileInput.onchange = function(event) {
+                newFileInput.addEventListener('change', function(event) {
                     var file = event.target.files[0];
                     if (file) {
                         console.log('OGMI: File selected via browse:', file.name);
                         OGMI.uploadFile(file);
                     }
                     // Clean up
-                    document.body.removeChild(newFileInput);
-                };
+                    if (document.body.contains(newFileInput)) {
+                        document.body.removeChild(newFileInput);
+                    }
+                });
                 
                 // Add to body and trigger click
                 document.body.appendChild(newFileInput);
                 newFileInput.click();
-            });
-            
-            // File input change event (for the original hidden input)
-            $fileInput.off('change.ogmi').on('change.ogmi', function(e) {
-                e.stopPropagation();
-                console.log('OGMI: Original file input changed');
-                OGMI.handleFileSelect();
             });
         },
         
