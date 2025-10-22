@@ -95,7 +95,20 @@
          */
         bindEvents: function() {
             // Quick add form
+            console.log('OGMI: Binding events...');
+            console.log('OGMI: Looking for form with ID: #ogmi-quick-add-form');
+            console.log('OGMI: Form found:', $('#ogmi-quick-add-form').length);
+            
             $(document).on('submit', '#ogmi-quick-add-form', this.handleQuickAdd);
+            console.log('OGMI: Event handler bound for #ogmi-quick-add-form');
+            
+            // Test if we can find the form and button
+            setTimeout(function() {
+                console.log('OGMI: Testing form elements after 1 second...');
+                console.log('OGMI: Form found:', $('#ogmi-quick-add-form').length);
+                console.log('OGMI: Submit button found:', $('#ogmi-quick-add-form button[type="submit"]').length);
+                console.log('OGMI: Email input found:', $('#ogmi-quick-add-form #quick-email').length);
+            }, 1000);
             
             // Bulk import toggle
             $(document).on('click', '#ogmi-toggle-bulk-import', this.toggleBulkImport);
