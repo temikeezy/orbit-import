@@ -40,9 +40,6 @@ class OGMI_Group_Manager_Integration {
         add_action( 'wp_ajax_ogmi_upload_file', array( $this, 'handle_file_upload' ) );
         add_action( 'wp_ajax_ogmi_process_batch', array( $this, 'handle_batch_process' ) );
         add_action( 'wp_ajax_ogmi_get_file_preview', array( $this, 'handle_get_preview' ) );
-        
-        // Add debug info
-        add_action( 'wp_footer', array( $this, 'debug_info' ) );
     }
     
     /**
@@ -62,11 +59,8 @@ class OGMI_Group_Manager_Integration {
         // Include the template
         $template_path = OGMI_PLUGIN_DIR . 'templates/members-import-interface.php';
         if ( file_exists( $template_path ) ) {
-            error_log('OGMI: Including template: ' . $template_path);
             include $template_path;
-            error_log('OGMI: Template included successfully');
         } else {
-            error_log('OGMI: Template file not found: ' . $template_path);
         }
     }
     
@@ -88,11 +82,8 @@ class OGMI_Group_Manager_Integration {
         // Add the interface
         $template_path = OGMI_PLUGIN_DIR . 'templates/members-import-interface.php';
         if ( file_exists( $template_path ) ) {
-            error_log('OGMI: Alternative method - Including template: ' . $template_path);
             include $template_path;
-            error_log('OGMI: Alternative method - Template included successfully');
         } else {
-            error_log('OGMI: Alternative method - Template file not found: ' . $template_path);
         }
     }
     
@@ -207,25 +198,16 @@ class OGMI_Group_Manager_Integration {
      * Handle individual member addition
      */
     public function handle_add_member() {
-        error_log('OGMI: handle_add_member called');
-        error_log('OGMI: POST data: ' . print_r($_POST, true));
-        
         // Verify nonce
         if ( ! wp_verify_nonce( $_POST['nonce'], 'ogmi_import' ) ) {
-            error_log('OGMI: Nonce verification failed');
             wp_send_json_error( array( 'message' => __( 'Security check failed', OGMI_TEXT_DOMAIN ) ) );
         }
-        
-        error_log('OGMI: Nonce verification passed');
-        
+		
         // Check permissions
         if ( ! $this->user_can_import() ) {
-            error_log('OGMI: User does not have import permissions');
             wp_send_json_error( array( 'message' => __( 'Insufficient permissions', OGMI_TEXT_DOMAIN ) ) );
         }
-        
-        error_log('OGMI: User has import permissions');
-        
+		
         // Get and validate data
         $email = sanitize_email( $_POST['email'] );
         $first_name = sanitize_text_field( $_POST['first_name'] );
@@ -233,63 +215,23 @@ class OGMI_Group_Manager_Integration {
         $role = sanitize_key( $_POST['role'] );
         $group_id = (int) $_POST['group_id'];
         
-        error_log('OGMI: Form data - Email: ' . $email . ', First: ' . $first_name . ', Last: ' . $last_name . ', Role: ' . $role . ', Group ID: ' . $group_id);
-        
         if ( empty( $email ) || ! is_email( $email ) ) {
-            error_log('OGMI: Invalid email: ' . $email);
             wp_send_json_error( array( 'message' => __( 'Invalid email address', OGMI_TEXT_DOMAIN ) ) );
         }
         
         if ( ! in_array( $role, array( 'member', 'mod', 'admin' ), true ) ) {
             $role = 'member';
         }
-        
-        error_log('OGMI: About to call user manager');
-        
+		
         // Use user manager to add member
         $user_manager = new OGMI_User_Manager();
         $result = $user_manager->add_member_to_group( $email, $first_name, $last_name, $group_id, $role );
         
-        error_log('OGMI: User manager result: ' . print_r($result, true));
-        
         if ( is_wp_error( $result ) ) {
-            error_log('OGMI: User manager error: ' . $result->get_error_message());
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
         }
-        
-        error_log('OGMI: Sending success response');
+		
         wp_send_json_success( $result );
-    }
-    
-    /**
-     * Debug information for troubleshooting
-     */
-    public function debug_info() {
-        // Only show on members management page
-        if ( ! $this->is_members_management_page() ) {
-            return;
-        }
-        
-        // Check permissions
-        if ( ! $this->user_can_import() ) {
-            return;
-        }
-        
-        $group_id = bp_get_current_group_id();
-        $nonce = wp_create_nonce( 'ogmi_import' );
-        
-        echo '<div id="ogmi-debug-panel" style="position: fixed; top: 10px; right: 10px; background: #fff; border: 2px solid #0073aa; padding: 15px; z-index: 9999; max-width: 300px; font-size: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">';
-        echo '<h4 style="margin: 0 0 10px 0; color: #0073aa;">OGMI Debug Info</h4>';
-        echo '<p><strong>Is Group:</strong> ' . ( bp_is_group() ? 'Yes' : 'No' ) . '</p>';
-        echo '<p><strong>Is Group Admin:</strong> ' . ( groups_is_user_admin( get_current_user_id(), $group_id ) ? 'Yes' : 'No' ) . '</p>';
-        echo '<p><strong>Current Action:</strong> ' . bp_action_variable( 0 ) . '</p>';
-        echo '<p><strong>Group ID:</strong> ' . $group_id . '</p>';
-        echo '<p><strong>User Can Import:</strong> ' . ( $this->user_can_import() ? 'Yes' : 'No' ) . '</p>';
-        echo '<p><strong>Is Members Page:</strong> ' . ( $this->is_members_management_page() ? 'Yes' : 'No' ) . '</p>';
-        echo '<p><strong>Nonce:</strong> ' . $nonce . '</p>';
-        echo '<p><strong>AJAX URL:</strong> ' . admin_url( 'admin-ajax.php' ) . '</p>';
-        echo '<p><strong>Script Version:</strong> ' . OGMI_VERSION . '</p>';
-        echo '</div>';
     }
     
     /**

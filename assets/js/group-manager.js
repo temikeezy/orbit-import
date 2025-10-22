@@ -7,10 +7,7 @@
 (function($) {
     'use strict';
     
-    // Test if our script is loading
-    console.log('OGMI: Script file loaded successfully');
-    console.log('OGMI: jQuery available:', typeof $ !== 'undefined');
-    console.log('OGMI: Document ready state:', document.readyState);
+    // Script bootstrap
     
     var OGMI = {
         currentFileId: null,
@@ -22,30 +19,6 @@
          * Initialize the plugin
          */
         init: function() {
-            console.log('OGMI: Initializing plugin');
-            console.log('OGMI: OGMI_DATA available:', typeof OGMI_DATA !== 'undefined');
-            if (typeof OGMI_DATA !== 'undefined') {
-                console.log('OGMI: OGMI_DATA.nonce:', OGMI_DATA.nonce);
-                console.log('OGMI: OGMI_DATA.groupId:', OGMI_DATA.groupId);
-                console.log('OGMI: OGMI_DATA.ajaxUrl:', OGMI_DATA.ajaxUrl);
-            } else {
-                console.log('OGMI: OGMI_DATA is undefined - script localization failed');
-            }
-            
-            // Check for previous debug info
-            var previousDebug = localStorage.getItem('ogmi_debug');
-            if (previousDebug) {
-                console.log('OGMI: Previous debug info found:', JSON.parse(previousDebug));
-                localStorage.removeItem('ogmi_debug'); // Clear it after reading
-            }
-            
-            // Check for AJAX debug info
-            var ajaxDebug = localStorage.getItem('ogmi_ajax_debug');
-            if (ajaxDebug) {
-                console.log('OGMI: Previous AJAX debug info found:', JSON.parse(ajaxDebug));
-                localStorage.removeItem('ogmi_ajax_debug'); // Clear it after reading
-            }
-            
             this.bindEvents();
             this.initDropzone();
             
@@ -114,23 +87,13 @@
          * Bind event handlers
          */
         bindEvents: function() {
-            console.log('OGMI: Binding events');
-            
-            // Check if form exists
             var $form = $('#ogmi-quick-add-form');
-            console.log('OGMI: Quick add form found:', $form.length);
-            if ($form.length > 0) {
-                console.log('OGMI: Form HTML:', $form[0].outerHTML);
-            }
-            
             // Quick add - handled via button click to avoid nested form submit
             $(document).on('click', '#ogmi-quick-add-form .ogmi-button-primary', this.handleQuickAdd);
-            console.log('OGMI: Quick add button event bound');
             
             // Also try to prevent any form submission on the page
             // Intercept any accidental submit on our container (defensive)
             $(document).on('submit', '#ogmi-quick-add-form', function(e) {
-                console.log('OGMI: Prevented default submit on quick add container');
                 e.preventDefault();
                 e.stopPropagation();
                 return false;
@@ -159,24 +122,6 @@
                 OGMI.closeImport();
             });
             
-            // Test form submission manually
-            setTimeout(function() {
-                var $testForm = $('#ogmi-quick-add-form');
-                console.log('OGMI: Form check after 2 seconds:', $testForm.length);
-                if ($testForm.length > 0) {
-                    console.log('OGMI: Form submit button found:', $testForm.find('button[type="submit"]').length);
-                    console.log('OGMI: Form email input found:', $testForm.find('#quick-email').length);
-                } else {
-                    console.log('OGMI: Form not found - checking for any forms with ogmi in the ID:');
-                    $('form[id*="ogmi"]').each(function() {
-                        console.log('OGMI: Found form with ogmi in ID:', this.id, this);
-                    });
-                    console.log('OGMI: All forms on page:');
-                    $('form').each(function() {
-                        console.log('OGMI: Form ID:', this.id || 'no-id', 'Class:', this.className);
-                    });
-                }
-            }, 2000);
         },
         
         /**
@@ -275,27 +220,6 @@
             e.preventDefault();
             e.stopPropagation();
             
-            // Store debug info in localStorage so it persists after page refresh
-            var debugInfo = {
-                timestamp: new Date().toISOString(),
-                event: 'form_submitted',
-                ogmiDataAvailable: typeof OGMI_DATA !== 'undefined',
-                ogmiData: typeof OGMI_DATA !== 'undefined' ? {
-                    nonce: OGMI_DATA.nonce,
-                    groupId: OGMI_DATA.groupId,
-                    ajaxUrl: OGMI_DATA.ajaxUrl
-                } : null
-            };
-            localStorage.setItem('ogmi_debug', JSON.stringify(debugInfo));
-            
-            console.log('OGMI: Quick add form submitted');
-            console.log('OGMI: OGMI_DATA available:', typeof OGMI_DATA !== 'undefined');
-            if (typeof OGMI_DATA !== 'undefined') {
-                console.log('OGMI: OGMI_DATA.nonce:', OGMI_DATA.nonce);
-                console.log('OGMI: OGMI_DATA.groupId:', OGMI_DATA.groupId);
-                console.log('OGMI: OGMI_DATA.ajaxUrl:', OGMI_DATA.ajaxUrl);
-            }
-            
             // Resolve the quick-add container regardless of whether the event
             // originated from a form submit or a button click inside the container
             var $form = $('#ogmi-quick-add-form');
@@ -307,9 +231,7 @@
             
             // Validate email
             var email = $form.find('#quick-email').val().trim();
-            console.log('OGMI: Email from form:', email);
             if (!email || !OGMI.isValidEmail(email)) {
-                console.log('OGMI: Email validation failed');
                 OGMI.showError($result, OGMI_DATA.strings.invalidEmail);
                 return;
             }
@@ -327,36 +249,14 @@
                 role: $form.find('#quick-role').val()
             };
             
-            console.log('OGMI: AJAX data being sent:', ajaxData);
-            
-            // Store AJAX attempt in localStorage
-            var ajaxDebug = {
-                timestamp: new Date().toISOString(),
-                event: 'ajax_started',
-                data: ajaxData
-            };
-            localStorage.setItem('ogmi_ajax_debug', JSON.stringify(ajaxDebug));
-            
             $.ajax({
                 url: OGMI_DATA.ajaxUrl,
                 type: 'POST',
                 data: ajaxData,
                 success: function(response) {
-                    console.log('OGMI: Quick add AJAX success response:', response);
-                    
-                    // Store success in localStorage
-                    var successDebug = {
-                        timestamp: new Date().toISOString(),
-                        event: 'ajax_success',
-                        response: response
-                    };
-                    localStorage.setItem('ogmi_ajax_debug', JSON.stringify(successDebug));
-                    
                     if (response.success) {
                         var data = response.data;
                         var message = data.is_new ? OGMI_DATA.strings.userCreated : OGMI_DATA.strings.userExists;
-                        
-                        console.log('OGMI: User created successfully:', data);
                         OGMI.showSuccess($result, message);
                         $form.find('input[type="email"], input[type="text"]').val(''); // Reset only text/email inputs
                         
@@ -365,27 +265,10 @@
                             window.location.reload();
                         }, 2000);
                     } else {
-                        console.log('OGMI: Quick add failed:', response.data);
                         OGMI.showError($result, response.data.message || OGMI_DATA.strings.error);
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.log('OGMI: Quick add AJAX error:', xhr, status, error);
-                    
-                    // Store error in localStorage
-                    var errorDebug = {
-                        timestamp: new Date().toISOString(),
-                        event: 'ajax_error',
-                        xhr: {
-                            status: xhr.status,
-                            statusText: xhr.statusText,
-                            responseText: xhr.responseText
-                        },
-                        status: status,
-                        error: error
-                    };
-                    localStorage.setItem('ogmi_ajax_debug', JSON.stringify(errorDebug));
-                    
                     var message = OGMI_DATA.strings.error;
                     if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
                         message = xhr.responseJSON.data.message;
@@ -870,10 +753,7 @@
         OGMI.init();
     });
     
-    // Make OGMI available globally for debugging
+    // Expose minimal API if needed in future
     window.OGMI = OGMI;
-    
-    console.log('OGMI: Script initialization complete');
-    console.log('OGMI: OGMI object available globally:', typeof window.OGMI !== 'undefined');
     
 })(jQuery);
