@@ -23,6 +23,8 @@ class OGMI_Group_Manager_Integration {
      * Initialize the integration
      */
     public function init() {
+        error_log('OGMI: Group Manager Integration init() called');
+        
         // Hook into BuddyBoss group management - try multiple hooks for better compatibility
         add_action( 'bp_after_group_admin_content', array( $this, 'add_import_interface' ) );
         add_action( 'bp_after_group_members_list', array( $this, 'add_import_interface' ) );
@@ -33,6 +35,11 @@ class OGMI_Group_Manager_Integration {
         add_action( 'bp_before_group_members_list', array( $this, 'add_import_interface_alternative' ) );
         add_action( 'bp_after_group_members_list', array( $this, 'add_import_interface_alternative' ) );
         
+        error_log('OGMI: All hooks registered');
+        
+        // Add a test hook that should always fire to see if we can inject content
+        add_action( 'wp_footer', array( $this, 'test_template_injection' ) );
+        
         // Add debug hook to see what's happening (disabled for production)
         
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
@@ -42,6 +49,22 @@ class OGMI_Group_Manager_Integration {
         add_action( 'wp_ajax_ogmi_upload_file', array( $this, 'handle_file_upload' ) );
         add_action( 'wp_ajax_ogmi_process_batch', array( $this, 'handle_batch_process' ) );
         add_action( 'wp_ajax_ogmi_get_file_preview', array( $this, 'handle_get_preview' ) );
+    }
+    
+    /**
+     * Test method to see if we can inject content
+     */
+    public function test_template_injection() {
+        error_log('OGMI: test_template_injection called');
+        
+        // Only show on group pages
+        if ( ! bp_is_group() ) {
+            error_log('OGMI: Not on group page, skipping test injection');
+            return;
+        }
+        
+        error_log('OGMI: On group page, injecting test content');
+        echo '<!-- OGMI TEST: Template injection working -->';
     }
     
     /**
