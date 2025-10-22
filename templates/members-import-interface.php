@@ -129,13 +129,6 @@ $group = groups_get_group( $group_id );
                     </select>
                 </div>
                 
-                <div class="ogmi-mapping-item">
-                    <label for="map-role"><?php echo esc_html__( 'Group Role', OGMI_TEXT_DOMAIN ); ?></label>
-                    <select id="map-role" name="mapping[role]">
-                        <option value=""><?php echo esc_html__( 'Select column...', OGMI_TEXT_DOMAIN ); ?></option>
-                    </select>
-                    <small><?php echo esc_html__( 'Leave empty to default to "member"', OGMI_TEXT_DOMAIN ); ?></small>
-                </div>
             </div>
             
             <div class="ogmi-preview-section">

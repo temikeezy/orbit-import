@@ -275,18 +275,15 @@ class OGMI_File_Processor {
             $email = $this->get_mapped_value( $row, $mapping, 'email' );
             $first_name = $this->get_mapped_value( $row, $mapping, 'first_name' );
             $last_name = $this->get_mapped_value( $row, $mapping, 'last_name' );
-            $role = $this->get_mapped_value( $row, $mapping, 'role' );
+            
+            // Default all imported users to 'member' role
+            $role = 'member';
             
             // Validate email
             if ( empty( $email ) || ! is_email( $email ) ) {
                 $results['skipped']++;
                 $results['errors']++;
                 continue;
-            }
-            
-            // Validate role
-            if ( ! in_array( $role, array( 'member', 'mod', 'admin' ), true ) ) {
-                $role = 'member';
             }
             
             // Add member to group
