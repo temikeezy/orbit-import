@@ -27,6 +27,20 @@
                 console.log('OGMI: OGMI_DATA is undefined - script localization failed');
             }
             
+            // Check for previous debug info
+            var previousDebug = localStorage.getItem('ogmi_debug');
+            if (previousDebug) {
+                console.log('OGMI: Previous debug info found:', JSON.parse(previousDebug));
+                localStorage.removeItem('ogmi_debug'); // Clear it after reading
+            }
+            
+            // Check for AJAX debug info
+            var ajaxDebug = localStorage.getItem('ogmi_ajax_debug');
+            if (ajaxDebug) {
+                console.log('OGMI: Previous AJAX debug info found:', JSON.parse(ajaxDebug));
+                localStorage.removeItem('ogmi_ajax_debug'); // Clear it after reading
+            }
+            
             this.bindEvents();
             this.initDropzone();
             
@@ -236,6 +250,20 @@
          */
         handleQuickAdd: function(e) {
             e.preventDefault();
+            e.stopPropagation();
+            
+            // Store debug info in localStorage so it persists after page refresh
+            var debugInfo = {
+                timestamp: new Date().toISOString(),
+                event: 'form_submitted',
+                ogmiDataAvailable: typeof OGMI_DATA !== 'undefined',
+                ogmiData: typeof OGMI_DATA !== 'undefined' ? {
+                    nonce: OGMI_DATA.nonce,
+                    groupId: OGMI_DATA.groupId,
+                    ajaxUrl: OGMI_DATA.ajaxUrl
+                } : null
+            };
+            localStorage.setItem('ogmi_debug', JSON.stringify(debugInfo));
             
             console.log('OGMI: Quick add form submitted');
             console.log('OGMI: OGMI_DATA available:', typeof OGMI_DATA !== 'undefined');
@@ -273,12 +301,29 @@
             
             console.log('OGMI: AJAX data being sent:', ajaxData);
             
+            // Store AJAX attempt in localStorage
+            var ajaxDebug = {
+                timestamp: new Date().toISOString(),
+                event: 'ajax_started',
+                data: ajaxData
+            };
+            localStorage.setItem('ogmi_ajax_debug', JSON.stringify(ajaxDebug));
+            
             $.ajax({
                 url: OGMI_DATA.ajaxUrl,
                 type: 'POST',
                 data: ajaxData,
                 success: function(response) {
                     console.log('OGMI: Quick add AJAX success response:', response);
+                    
+                    // Store success in localStorage
+                    var successDebug = {
+                        timestamp: new Date().toISOString(),
+                        event: 'ajax_success',
+                        response: response
+                    };
+                    localStorage.setItem('ogmi_ajax_debug', JSON.stringify(successDebug));
+                    
                     if (response.success) {
                         var data = response.data;
                         var message = data.is_new ? OGMI_DATA.strings.userCreated : OGMI_DATA.strings.userExists;
@@ -298,6 +343,21 @@
                 },
                 error: function(xhr, status, error) {
                     console.log('OGMI: Quick add AJAX error:', xhr, status, error);
+                    
+                    // Store error in localStorage
+                    var errorDebug = {
+                        timestamp: new Date().toISOString(),
+                        event: 'ajax_error',
+                        xhr: {
+                            status: xhr.status,
+                            statusText: xhr.statusText,
+                            responseText: xhr.responseText
+                        },
+                        status: status,
+                        error: error
+                    };
+                    localStorage.setItem('ogmi_ajax_debug', JSON.stringify(errorDebug));
+                    
                     var message = OGMI_DATA.strings.error;
                     if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
                         message = xhr.responseJSON.data.message;
@@ -308,6 +368,8 @@
                     $button.prop('disabled', false).text('Add Member');
                 }
             });
+            
+            return false; // Prevent any form submission
         },
         
         /**
