@@ -34,8 +34,12 @@
             $(document).on('change', '#ogmi-file-input', this.handleFileSelect);
             
             // Mapping and import
-            $(document).on('change', '.ogmi-mapping-item select', this.updateMapping);
-            $(document).on('click', '#ogmi-start-import', this.startImport);
+            $(document).on('change', '.ogmi-mapping-item select', function() {
+                OGMI.updateMapping();
+            });
+            $(document).on('click', '#ogmi-start-import', function() {
+                OGMI.startImport();
+            });
             $(document).on('click', '#ogmi-cancel-import', this.cancelImport);
             $(document).on('click', '#ogmi-close-import', this.closeImport);
             $(document).on('click', '#ogmi-start-new-import', this.startNewImport);
@@ -425,16 +429,19 @@
          * Update mapping
          */
         updateMapping: function() {
+            console.log('OGMI: updateMapping called');
             var mapping = {};
             $('.ogmi-mapping-item select').each(function() {
                 var $select = $(this);
                 var name = $select.attr('name').match(/\[([^\]]+)\]/)[1];
                 var value = $select.val();
+                console.log('OGMI: Found select with name:', name, 'value:', value);
                 if (value !== '') {
                     mapping[name] = parseInt(value, 10);
                 }
             });
             
+            console.log('OGMI: Updated mapping:', mapping);
             OGMI.currentMapping = mapping;
         },
         
