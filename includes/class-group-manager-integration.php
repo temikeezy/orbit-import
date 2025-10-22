@@ -48,20 +48,33 @@ class OGMI_Group_Manager_Integration {
      * Add import interface to group management
      */
     public function add_import_interface() {
+        error_log('OGMI: add_import_interface called');
+        
         // Only show on members management page
         if ( ! $this->is_members_management_page() ) {
+            error_log('OGMI: Not on members management page, returning');
             return;
         }
         
         // Check permissions
         if ( ! $this->user_can_import() ) {
+            error_log('OGMI: User cannot import, returning');
             return;
         }
         
+        error_log('OGMI: About to include template');
+        
         // Include the template
         $template_path = OGMI_PLUGIN_DIR . 'templates/members-import-interface.php';
+        error_log('OGMI: Template path: ' . $template_path);
+        error_log('OGMI: Template exists: ' . (file_exists( $template_path ) ? 'YES' : 'NO'));
+        
         if ( file_exists( $template_path ) ) {
+            error_log('OGMI: Including template now...');
             include $template_path;
+            error_log('OGMI: Template included successfully');
+        } else {
+            error_log('OGMI: Template file not found!');
         }
     }
     
@@ -69,21 +82,36 @@ class OGMI_Group_Manager_Integration {
      * Alternative method to add import interface - try different approach
      */
     public function add_import_interface_alternative() {
+        error_log('OGMI: add_import_interface_alternative called');
+        
         // Check if we're on a group page and user can import
         if ( ! bp_is_group() || ! $this->user_can_import() ) {
+            error_log('OGMI: Alternative - Not on group page or user cannot import, returning');
             return;
         }
         
         // Check if we're in the members section - BuddyBoss uses 'manage-members'
         $current_action = bp_action_variable( 0 );
+        error_log('OGMI: Alternative - Current action: ' . $current_action);
+        
         if ( $current_action !== 'members' && $current_action !== 'manage-members' && ! empty( $current_action ) ) {
+            error_log('OGMI: Alternative - Not in members section, returning');
             return;
         }
         
+        error_log('OGMI: Alternative - About to include template');
+        
         // Add the interface
         $template_path = OGMI_PLUGIN_DIR . 'templates/members-import-interface.php';
+        error_log('OGMI: Alternative - Template path: ' . $template_path);
+        error_log('OGMI: Alternative - Template exists: ' . (file_exists( $template_path ) ? 'YES' : 'NO'));
+        
         if ( file_exists( $template_path ) ) {
+            error_log('OGMI: Alternative - Including template now...');
             include $template_path;
+            error_log('OGMI: Alternative - Template included successfully');
+        } else {
+            error_log('OGMI: Alternative - Template file not found!');
         }
     }
     
