@@ -494,8 +494,11 @@
             
             console.log('OGMI: Updated mapping:', mapping);
             console.log('OGMI: Mapping keys:', Object.keys(mapping));
+            console.log('OGMI: Mapping email value:', mapping.email);
+            console.log('OGMI: Mapping email type:', typeof mapping.email);
             OGMI.currentMapping = mapping;
             console.log('OGMI: Current mapping after update:', OGMI.currentMapping);
+            console.log('OGMI: Current mapping email after update:', OGMI.currentMapping.email);
         },
         
         /**
@@ -507,7 +510,12 @@
             console.log('OGMI: Current mapping type:', typeof OGMI.currentMapping);
             console.log('OGMI: Current mapping email:', OGMI.currentMapping.email);
             console.log('OGMI: Current mapping email type:', typeof OGMI.currentMapping.email);
+            console.log('OGMI: Current mapping keys:', Object.keys(OGMI.currentMapping));
             console.log('OGMI: Email mapping check:', !OGMI.currentMapping.email && OGMI.currentMapping.email !== 0);
+            console.log('OGMI: Email mapping check breakdown:');
+            console.log('  - !OGMI.currentMapping.email:', !OGMI.currentMapping.email);
+            console.log('  - OGMI.currentMapping.email !== 0:', OGMI.currentMapping.email !== 0);
+            console.log('  - Combined condition:', !OGMI.currentMapping.email && OGMI.currentMapping.email !== 0);
             
             if (OGMI.isProcessing) {
                 console.log('OGMI: Already processing, returning');
