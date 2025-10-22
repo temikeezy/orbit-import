@@ -26,6 +26,9 @@
             }
             this.bindEvents();
             this.initDropzone();
+            
+            // Handle required fields on initialization
+            this.handleRequiredFields(1);
         },
         
         /**
@@ -49,7 +52,23 @@
                 $('.ogmi-step[data-step="' + i + '"]').addClass('ogmi-step-completed');
             }
             
+            // Handle required attributes for hidden fields
+            this.handleRequiredFields(step);
+            
             this.currentStep = step;
+        },
+        
+        /**
+         * Handle required attributes for hidden fields
+         */
+        handleRequiredFields: function(step) {
+            // Remove required attribute from all mapping fields when not on step 2
+            if (step !== 2) {
+                $('.ogmi-mapping-item select[required]').removeAttr('required');
+            } else {
+                // Add required attribute back when on step 2
+                $('#map-email').attr('required', 'required');
+            }
         },
         
         /**
