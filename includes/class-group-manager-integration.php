@@ -164,15 +164,10 @@ class OGMI_Group_Manager_Integration {
      * Enqueue scripts and styles
      */
     public function enqueue_scripts() {
-        error_log('OGMI: enqueue_scripts called - version 1.0.3');
-        
         // Check if we're on the members management page
         if ( ! $this->is_members_management_page() ) {
-            error_log('OGMI: Not on members management page, skipping');
             return;
         }
-        
-        error_log('OGMI: On members management page, proceeding with enqueue');
         
         // Enqueue styles
         wp_enqueue_style(
@@ -217,7 +212,6 @@ class OGMI_Group_Manager_Integration {
         );
         
         wp_localize_script( 'ogmi-group-manager', 'OGMI', $localize_data );
-        error_log('OGMI: Script localized with nonce: ' . $nonce . ' and group ID: ' . $group_id);
     }
     
     /**

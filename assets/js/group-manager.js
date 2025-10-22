@@ -7,8 +7,6 @@
 (function($) {
     'use strict';
     
-    console.log('OGMI: JavaScript version 1.0.3 loaded - cache test');
-    
     var OGMI = {
         currentFileId: null,
         currentMapping: {},
