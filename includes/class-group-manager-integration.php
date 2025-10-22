@@ -200,7 +200,7 @@ class OGMI_Group_Manager_Integration {
         error_log('OGMI: POST data: ' . print_r($_POST, true));
         
         // Verify nonce
-        if ( ! wp_verify_nonce( $_POST['nonce'], 'ogmi_add_member' ) ) {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'ogmi_import' ) ) {
             error_log('OGMI: Nonce verification failed');
             wp_send_json_error( array( 'message' => __( 'Security check failed', OGMI_TEXT_DOMAIN ) ) );
         }
