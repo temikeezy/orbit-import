@@ -578,7 +578,9 @@
                         }
                     } else {
                         console.log('OGMI: Batch processing failed:', response.data);
+                        console.log('OGMI: Full error response:', JSON.stringify(response.data, null, 2));
                         console.log('OGMI: Error message:', response.data.message);
+                        console.log('OGMI: Error type:', typeof response.data.message);
                         OGMI.showAlert(response.data.message || OGMI.strings.error);
                         OGMI.isProcessing = false;
                     }
