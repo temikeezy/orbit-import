@@ -210,20 +210,20 @@
             // Validate email
             var email = $form.find('#quick-email').val().trim();
             if (!email || !OGMI.isValidEmail(email)) {
-                OGMI.showError($result, OGMI.strings.invalidEmail);
+                OGMI.showError($result, OGMI_DATA.strings.invalidEmail);
                 return;
             }
             
-            $button.prop('disabled', true).text(OGMI.strings.processing);
+            $button.prop('disabled', true).text(OGMI_DATA.strings.processing);
             $result.hide();
             
             $.ajax({
-                url: OGMI.ajaxUrl,
+                url: OGMI_DATA.ajaxUrl,
                 type: 'POST',
                 data: {
                     action: 'ogmi_add_member',
-                    nonce: OGMI.nonce,
-                    group_id: OGMI.groupId,
+                    nonce: OGMI_DATA.nonce,
+                    group_id: OGMI_DATA.groupId,
                     email: email,
                     first_name: $form.find('#quick-first-name').val().trim(),
                     last_name: $form.find('#quick-last-name').val().trim(),
@@ -232,7 +232,7 @@
                 success: function(response) {
                     if (response.success) {
                         var data = response.data;
-                        var message = data.is_new ? OGMI.strings.userCreated : OGMI.strings.userExists;
+                        var message = data.is_new ? OGMI_DATA.strings.userCreated : OGMI_DATA.strings.userExists;
                         
                         OGMI.showSuccess($result, message);
                         $form[0].reset();
@@ -242,11 +242,11 @@
                             window.location.reload();
                         }, 2000);
                     } else {
-                        OGMI.showError($result, response.data.message || OGMI.strings.error);
+                        OGMI.showError($result, response.data.message || OGMI_DATA.strings.error);
                     }
                 },
                 error: function(xhr) {
-                    var message = OGMI.strings.error;
+                    var message = OGMI_DATA.strings.error;
                     if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
                         message = xhr.responseJSON.data.message;
                     }
@@ -313,21 +313,21 @@
             
             if (!file) {
                 console.log('OGMI: No file provided');
-                OGMI.showAlert(OGMI.strings.selectFile);
+                OGMI.showAlert(OGMI_DATA.strings.selectFile);
                 return;
             }
             
             // Validate file type
             if (!file.name.toLowerCase().endsWith('.csv')) {
                 console.log('OGMI: Invalid file type:', file.name);
-                OGMI.showAlert(OGMI.strings.invalidFile);
+                OGMI.showAlert(OGMI_DATA.strings.invalidFile);
                 return;
             }
             
             // Validate file size (10MB)
             if (file.size > 10 * 1024 * 1024) {
                 console.log('OGMI: File too large:', file.size);
-                OGMI.showAlert(OGMI.strings.fileTooLarge);
+                OGMI.showAlert(OGMI_DATA.strings.fileTooLarge);
                 return;
             }
             
@@ -404,7 +404,7 @@
                         OGMI.showStep(2);
                     } else {
                         console.log('OGMI: Upload failed:', response.data);
-                        var errorMessage = OGMI.strings.error;
+                        var errorMessage = OGMI_DATA.strings.error;
                         if (response.data && response.data.message) {
                             errorMessage = response.data.message;
                         }
@@ -418,7 +418,7 @@
                     console.log('OGMI: Error:', error);
                     console.log('OGMI: Response text:', xhr.responseText);
                     OGMI.hideUploadProgress();
-                    var message = OGMI.strings.error;
+                    var message = OGMI_DATA.strings.error;
                     if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
                         message = xhr.responseJSON.data.message;
                     }
@@ -602,7 +602,7 @@
                         console.log('OGMI: Full error response:', JSON.stringify(response.data, null, 2));
                         console.log('OGMI: Error message:', response.data.message);
                         console.log('OGMI: Error type:', typeof response.data.message);
-                        OGMI.showAlert(response.data.message || OGMI.strings.error);
+                        OGMI.showAlert(response.data.message || OGMI_DATA.strings.error);
                         OGMI.isProcessing = false;
                     }
                 },
@@ -611,7 +611,7 @@
                     console.log('OGMI: Error status:', xhr.status);
                     console.log('OGMI: Error response:', xhr.responseText);
                     
-                    var message = OGMI.strings.error;
+                    var message = OGMI_DATA.strings.error;
                     if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
                         message = xhr.responseJSON.data.message;
                     }
