@@ -39,6 +39,7 @@ class ORBIT_Group_Member_Importer {
      */
     public static function get_instance() {
         if ( null === self::$instance ) {
+            error_log('OGMI: Creating new plugin instance');
             self::$instance = new self();
         }
         return self::$instance;
@@ -48,6 +49,7 @@ class ORBIT_Group_Member_Importer {
      * Constructor
      */
     private function __construct() {
+        error_log('OGMI: Plugin constructor called');
         add_action( 'plugins_loaded', array( $this, 'init' ) );
         register_activation_hook( __FILE__, array( $this, 'activate' ) );
         register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
@@ -57,21 +59,29 @@ class ORBIT_Group_Member_Importer {
      * Initialize the plugin
      */
     public function init() {
+        error_log('OGMI: Main plugin init() called');
+        
         // Load text domain
         load_plugin_textdomain( OGMI_TEXT_DOMAIN, false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
         
         // Check if BuddyBoss or BuddyPress is active
         if ( ! $this->is_buddyboss_active() ) {
+            error_log('OGMI: BuddyBoss/BuddyPress not active, showing notice');
             add_action( 'admin_notices', array( $this, 'buddyboss_required_notice' ) );
             return;
         }
+        
+        error_log('OGMI: BuddyBoss/BuddyPress is active, loading classes');
         
         // Load plugin classes
         $this->load_classes();
         
         // Initialize the group manager integration
         if ( class_exists( 'OGMI_Group_Manager_Integration' ) ) {
+            error_log('OGMI: Creating OGMI_Group_Manager_Integration instance');
             new OGMI_Group_Manager_Integration();
+        } else {
+            error_log('OGMI: OGMI_Group_Manager_Integration class not found');
         }
         
         // Schedule cleanup of expired files
