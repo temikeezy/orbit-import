@@ -196,15 +196,24 @@ class OGMI_Group_Manager_Integration {
      * Handle individual member addition
      */
     public function handle_add_member() {
+        error_log('OGMI: handle_add_member called');
+        error_log('OGMI: POST data: ' . print_r($_POST, true));
+        
         // Verify nonce
-        if ( ! wp_verify_nonce( $_POST['nonce'], 'ogmi_import' ) ) {
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'ogmi_add_member' ) ) {
+            error_log('OGMI: Nonce verification failed');
             wp_send_json_error( array( 'message' => __( 'Security check failed', OGMI_TEXT_DOMAIN ) ) );
         }
         
+        error_log('OGMI: Nonce verification passed');
+        
         // Check permissions
         if ( ! $this->user_can_import() ) {
+            error_log('OGMI: User does not have import permissions');
             wp_send_json_error( array( 'message' => __( 'Insufficient permissions', OGMI_TEXT_DOMAIN ) ) );
         }
+        
+        error_log('OGMI: User has import permissions');
         
         // Get and validate data
         $email = sanitize_email( $_POST['email'] );
@@ -213,7 +222,10 @@ class OGMI_Group_Manager_Integration {
         $role = sanitize_key( $_POST['role'] );
         $group_id = (int) $_POST['group_id'];
         
+        error_log('OGMI: Form data - Email: ' . $email . ', First: ' . $first_name . ', Last: ' . $last_name . ', Role: ' . $role . ', Group ID: ' . $group_id);
+        
         if ( empty( $email ) || ! is_email( $email ) ) {
+            error_log('OGMI: Invalid email: ' . $email);
             wp_send_json_error( array( 'message' => __( 'Invalid email address', OGMI_TEXT_DOMAIN ) ) );
         }
         
@@ -221,14 +233,20 @@ class OGMI_Group_Manager_Integration {
             $role = 'member';
         }
         
+        error_log('OGMI: About to call user manager');
+        
         // Use user manager to add member
         $user_manager = new OGMI_User_Manager();
         $result = $user_manager->add_member_to_group( $email, $first_name, $last_name, $group_id, $role );
         
+        error_log('OGMI: User manager result: ' . print_r($result, true));
+        
         if ( is_wp_error( $result ) ) {
+            error_log('OGMI: User manager error: ' . $result->get_error_message());
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
         }
         
+        error_log('OGMI: Sending success response');
         wp_send_json_success( $result );
     }
     

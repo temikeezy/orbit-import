@@ -207,13 +207,23 @@
         handleQuickAdd: function(e) {
             e.preventDefault();
             
+            console.log('OGMI: Quick add form submitted');
+            console.log('OGMI: OGMI_DATA available:', typeof OGMI_DATA !== 'undefined');
+            if (typeof OGMI_DATA !== 'undefined') {
+                console.log('OGMI: OGMI_DATA.nonce:', OGMI_DATA.nonce);
+                console.log('OGMI: OGMI_DATA.groupId:', OGMI_DATA.groupId);
+                console.log('OGMI: OGMI_DATA.ajaxUrl:', OGMI_DATA.ajaxUrl);
+            }
+            
             var $form = $(this);
             var $button = $form.find('button[type="submit"]');
             var $result = $('#ogmi-quick-result');
             
             // Validate email
             var email = $form.find('#quick-email').val().trim();
+            console.log('OGMI: Email from form:', email);
             if (!email || !OGMI.isValidEmail(email)) {
+                console.log('OGMI: Email validation failed');
                 OGMI.showError($result, OGMI_DATA.strings.invalidEmail);
                 return;
             }
@@ -231,15 +241,19 @@
                 role: $form.find('#quick-role').val()
             };
             
+            console.log('OGMI: AJAX data being sent:', ajaxData);
+            
             $.ajax({
                 url: OGMI_DATA.ajaxUrl,
                 type: 'POST',
                 data: ajaxData,
                 success: function(response) {
+                    console.log('OGMI: Quick add AJAX success response:', response);
                     if (response.success) {
                         var data = response.data;
                         var message = data.is_new ? OGMI_DATA.strings.userCreated : OGMI_DATA.strings.userExists;
                         
+                        console.log('OGMI: User created successfully:', data);
                         OGMI.showSuccess($result, message);
                         $form[0].reset();
                         
@@ -248,10 +262,12 @@
                             window.location.reload();
                         }, 2000);
                     } else {
+                        console.log('OGMI: Quick add failed:', response.data);
                         OGMI.showError($result, response.data.message || OGMI_DATA.strings.error);
                     }
                 },
                 error: function(xhr, status, error) {
+                    console.log('OGMI: Quick add AJAX error:', xhr, status, error);
                     var message = OGMI_DATA.strings.error;
                     if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
                         message = xhr.responseJSON.data.message;
