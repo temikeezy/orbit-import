@@ -358,7 +358,7 @@
                         
                         console.log('OGMI: User created successfully:', data);
                         OGMI.showSuccess($result, message);
-                        $form[0].reset();
+                        $form.find('input[type="email"], input[type="text"]').val(''); // Reset only text/email inputs
                         
                         // Refresh the page after a short delay to show the new member
                         setTimeout(function() {
