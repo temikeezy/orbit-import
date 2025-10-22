@@ -184,4 +184,6 @@ class ORBIT_Group_Member_Importer {
 }
 
 // Initialize the plugin
+error_log('OGMI: Plugin file loaded, about to create instance');
 ORBIT_Group_Member_Importer::get_instance();
+error_log('OGMI: Plugin instance created');
