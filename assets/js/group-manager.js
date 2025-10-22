@@ -277,6 +277,14 @@
             formData.append('group_id', OGMI.groupId);
             formData.append('file', file);
             
+            console.log('OGMI: Nonce being sent:', OGMI.nonce);
+            console.log('OGMI: Group ID being sent:', OGMI.groupId);
+            
+            // Check if we have a valid nonce
+            if (!OGMI.nonce) {
+                console.log('OGMI: No nonce available, this will likely fail');
+            }
+            
             // Ensure we have the AJAX URL
             var ajaxUrl = OGMI.ajaxUrl || ajaxurl || '/wp-admin/admin-ajax.php';
             console.log('OGMI: Sending AJAX request to:', ajaxUrl);

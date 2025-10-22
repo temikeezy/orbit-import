@@ -252,6 +252,15 @@ class OGMI_Group_Manager_Integration {
         error_log('OGMI: POST data: ' . print_r($_POST, true));
         error_log('OGMI: FILES data: ' . print_r($_FILES, true));
         
+        // Check if nonce exists
+        if ( ! isset( $_POST['nonce'] ) ) {
+            error_log('OGMI: No nonce provided');
+            wp_send_json_error( array( 'message' => __( 'No security token provided', OGMI_TEXT_DOMAIN ) ) );
+        }
+        
+        error_log('OGMI: Nonce received: ' . $_POST['nonce']);
+        error_log('OGMI: Nonce verification result: ' . (wp_verify_nonce( $_POST['nonce'], 'ogmi_import' ) ? 'PASS' : 'FAIL'));
+        
         // Verify nonce
         if ( ! wp_verify_nonce( $_POST['nonce'], 'ogmi_import' ) ) {
             error_log('OGMI: Nonce verification failed');
