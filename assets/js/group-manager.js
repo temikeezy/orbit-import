@@ -7,6 +7,11 @@
 (function($) {
     'use strict';
     
+    // Test if our script is loading
+    console.log('OGMI: Script file loaded successfully');
+    console.log('OGMI: jQuery available:', typeof $ !== 'undefined');
+    console.log('OGMI: Document ready state:', document.readyState);
+    
     var OGMI = {
         currentFileId: null,
         currentMapping: {},
@@ -121,6 +126,16 @@
             // Quick add form - use document delegation to handle dynamically added content
             $(document).on('submit', '#ogmi-quick-add-form', this.handleQuickAdd);
             console.log('OGMI: Quick add form event bound');
+            
+            // Also try to prevent any form submission on the page
+            $(document).on('submit', 'form', function(e) {
+                if ($(this).attr('id') === 'ogmi-quick-add-form') {
+                    console.log('OGMI: Form submission intercepted for quick add form');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+            });
             
             // Bulk import toggle
             $(document).on('click', '#ogmi-toggle-bulk-import', this.toggleBulkImport);
@@ -844,5 +859,8 @@
     
     // Make OGMI available globally for debugging
     window.OGMI = OGMI;
+    
+    console.log('OGMI: Script initialization complete');
+    console.log('OGMI: OGMI object available globally:', typeof window.OGMI !== 'undefined');
     
 })(jQuery);
