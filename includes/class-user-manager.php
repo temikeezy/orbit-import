@@ -97,6 +97,14 @@ class OGMI_User_Manager {
             return $user_id;
         }
         
+        // Optionally add to current blog on multisite
+        if ( is_multisite() && function_exists( 'get_current_blog_id' ) ) {
+            $should_add_to_blog = apply_filters( 'ogmi_multisite_add_to_blog', true, $email );
+            if ( $should_add_to_blog ) {
+                add_user_to_blog( get_current_blog_id(), $user_id, 'subscriber' );
+            }
+        }
+
         // Send welcome email (optional)
         $this->send_welcome_email( $user_id, $password );
         
@@ -229,9 +237,11 @@ class OGMI_User_Manager {
 				'site.url'       => home_url( '/' ),
 			);
 
+			$tokens = apply_filters( 'ogmi_welcome_email_tokens', $tokens, $user, $reset_url );
+
 			// Use a custom template slug "orbit-welcome".
 			// Create this in BuddyBoss > Emails and include {{reset.url}} in the content.
-			$email_type = 'orbit-welcome';
+			$email_type = apply_filters( 'ogmi_welcome_email_template', 'orbit-welcome', $user );
 
 			try {
 				$sent = (bool) bp_send_email( $email_type, $user_id, array( 'tokens' => $tokens ) );

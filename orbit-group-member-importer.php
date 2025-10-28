@@ -86,6 +86,17 @@ class ORBIT_Group_Member_Importer {
         require_once OGMI_PLUGIN_DIR . 'includes/class-file-processor.php';
         require_once OGMI_PLUGIN_DIR . 'includes/class-user-manager.php';
         require_once OGMI_PLUGIN_DIR . 'includes/class-permission-handler.php';
+        require_once OGMI_PLUGIN_DIR . 'includes/rest/class-rest-controller.php';
+        if ( is_admin() ) {
+            require_once OGMI_PLUGIN_DIR . 'includes/admin/class-settings.php';
+        }
+        // Load WP-CLI commands if available
+        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+            $cli_file = OGMI_PLUGIN_DIR . 'includes/cli/class-ogmi-cli.php';
+            if ( file_exists( $cli_file ) ) {
+                require_once $cli_file;
+            }
+        }
     }
     
     /**

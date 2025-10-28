@@ -53,6 +53,18 @@ class OGMI_File_Processor {
         
         $file_path = $uploaded_file['file'];
         $file_extension = strtolower( pathinfo( $file['name'], PATHINFO_EXTENSION ) );
+
+        // Additional MIME/type hardening
+        $finfo = function_exists( 'finfo_open' ) ? finfo_open( FILEINFO_MIME_TYPE ) : false;
+        if ( $finfo ) {
+            $mime = finfo_file( $finfo, $file_path );
+            finfo_close( $finfo );
+            $allowed_mimes = apply_filters( 'ogmi_allowed_mimes', array( 'text/plain', 'text/csv', 'application/vnd.ms-excel' ) );
+            if ( ! in_array( $mime, $allowed_mimes, true ) ) {
+                unlink( $file_path );
+                return new WP_Error( 'invalid_mime', __( 'Invalid file MIME type.', OGMI_TEXT_DOMAIN ) );
+            }
+        }
         
         // Parse file and extract headers
         $headers = $this->extract_headers( $file_path, $file_extension );
@@ -76,7 +88,8 @@ class OGMI_File_Processor {
             'total_rows' => $this->count_total_rows( $file_path, $file_extension )
         );
         
-        set_transient( 'ogmi_file_' . $file_id, $file_data, HOUR_IN_SECONDS );
+        $ttl = (int) apply_filters( 'ogmi_upload_ttl', HOUR_IN_SECONDS );
+        set_transient( 'ogmi_file_' . $file_id, $file_data, $ttl );
         
         return array(
             'file_id' => $file_id,
@@ -268,6 +281,7 @@ class OGMI_File_Processor {
             'processed' => 0
         );
         
+        $batch_size = (int) apply_filters( 'ogmi_import_batch_size', $batch_size );
         $rows = $this->get_batch_rows( $file_data['file_path'], $file_data['file_extension'], $batch_size, $offset );
         
         foreach ( $rows as $row ) {
@@ -279,8 +293,8 @@ class OGMI_File_Processor {
             $last_name = $this->get_mapped_value( $row, $mapping, 'last_name' );
             
             
-            // Default all imported users to 'member' role
-            $role = 'member';
+            // Default all imported users role (filterable)
+            $role = apply_filters( 'ogmi_user_role_default', 'member', $row, $mapping );
             
             // Validate email
             if ( empty( $email ) || ! is_email( $email ) ) {

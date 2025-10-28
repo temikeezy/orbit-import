@@ -137,7 +137,8 @@ class OGMI_Group_Manager_Integration {
             return true;
         }
         
-        return false;
+        $allowed = false;
+        return (bool) apply_filters( 'ogmi_user_can_import', $allowed, $user_id, $group_id );
     }
     
     /**
@@ -291,6 +292,7 @@ class OGMI_Group_Manager_Integration {
         $file_id = sanitize_text_field( $_POST['file_id'] );
         $mapping = (array) $_POST['mapping'];
         $batch_size = (int) $_POST['batch_size'];
+        $batch_size = (int) apply_filters( 'ogmi_import_batch_size', $batch_size );
         $offset = (int) $_POST['offset'];
         $group_id = (int) $_POST['group_id'];
         
