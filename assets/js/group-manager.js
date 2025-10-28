@@ -24,6 +24,18 @@
             
             // Handle required fields on initialization
             this.handleRequiredFields(1);
+
+            // Create ARIA live region for announcements if missing
+            if (!document.getElementById('ogmi-live-region')) {
+                var live = document.createElement('div');
+                live.id = 'ogmi-live-region';
+                live.setAttribute('role', 'status');
+                live.setAttribute('aria-live', 'polite');
+                live.setAttribute('aria-atomic', 'true');
+                live.style.position = 'absolute';
+                live.style.left = '-9999px';
+                document.body.appendChild(live);
+            }
         },
         
         /**
@@ -50,6 +62,21 @@
             this.handleRequiredFields(step);
             
             this.currentStep = step;
+
+            // Announce step change
+            var live = document.getElementById('ogmi-live-region');
+            if (live) {
+                live.textContent = 'Step ' + step + ' active';
+            }
+
+            // Move focus to first interactive element of the step
+            var container = document.getElementById('ogmi-step-' + step);
+            if (container) {
+                var focusable = container.querySelector('input, select, button, a, textarea');
+                if (focusable && focusable.focus) {
+                    focusable.focus();
+                }
+            }
         },
         
         /**
@@ -371,6 +398,8 @@
                 return;
             }
             
+            var live = document.getElementById('ogmi-live-region');
+            if (live) { live.textContent = 'Uploading file'; }
             $.ajax({
                 url: ajaxUrl,
                 type: 'POST',
@@ -394,6 +423,7 @@
                     
                     
                     if (response.success) {
+                        if (live) { live.textContent = 'Upload complete'; }
                         OGMI.currentFileId = response.data.file_id;
                         OGMI.populateMappingOptions(response.data.headers);
                         OGMI.showFilePreview(response.data.preview_rows, response.data.headers);
@@ -406,6 +436,7 @@
                             errorMessage = response.data.message;
                         }
                         OGMI.showAlert(errorMessage);
+                        if (live) { live.textContent = 'Upload failed: ' + errorMessage; }
                     }
                 },
                 error: function(xhr, status, error) {
@@ -415,6 +446,7 @@
                         message = xhr.responseJSON.data.message;
                     }
                     OGMI.showAlert(message);
+                    if (live) { live.textContent = 'Upload error: ' + message; }
                 }
             });
         },
@@ -506,6 +538,8 @@
             OGMI.showStep(3);
             OGMI.resetStats();
             OGMI.processBatch(0);
+            var live = document.getElementById('ogmi-live-region');
+            if (live) { live.textContent = 'Import started'; }
         },
         
         /**
@@ -553,9 +587,13 @@
                             // Import complete
                             OGMI.completeImport(data);
                         }
+                        var live = document.getElementById('ogmi-live-region');
+                        if (live) { live.textContent = 'Processed ' + data.processed + ' rows'; }
                     } else {
                         OGMI.showAlert(response.data.message || OGMI_DATA.strings.error);
                         OGMI.isProcessing = false;
+                        var live = document.getElementById('ogmi-live-region');
+                        if (live) { live.textContent = 'Import failed'; }
                     }
                 },
                 error: function(xhr) {
@@ -566,6 +604,8 @@
                     }
                     OGMI.showAlert(message);
                     OGMI.isProcessing = false;
+                    var live = document.getElementById('ogmi-live-region');
+                    if (live) { live.textContent = 'Import error: ' + message; }
                 }
             });
         },

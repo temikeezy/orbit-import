@@ -76,6 +76,21 @@ class ORBIT_Group_Member_Importer {
         
         // Schedule cleanup of expired files
         add_action( 'wp_loaded', array( $this, 'schedule_cleanup' ) );
+
+        // Initialize REST API controller
+        if ( class_exists( 'OGMI_REST_Controller' ) ) {
+            add_action( 'rest_api_init', function() { ( new OGMI_REST_Controller() )->register_routes(); } );
+        }
+
+        // Initialize scheduler
+        if ( class_exists( 'OGMI_Import_Scheduler' ) ) {
+            $GLOBALS['ogmi_import_scheduler'] = new OGMI_Import_Scheduler();
+        }
+
+        // Initialize settings
+        if ( is_admin() && class_exists( 'OGMI_Settings' ) ) {
+            new OGMI_Settings();
+        }
     }
     
     /**
@@ -87,6 +102,7 @@ class ORBIT_Group_Member_Importer {
         require_once OGMI_PLUGIN_DIR . 'includes/class-user-manager.php';
         require_once OGMI_PLUGIN_DIR . 'includes/class-permission-handler.php';
         require_once OGMI_PLUGIN_DIR . 'includes/rest/class-rest-controller.php';
+        require_once OGMI_PLUGIN_DIR . 'includes/scheduler/class-import-scheduler.php';
         if ( is_admin() ) {
             require_once OGMI_PLUGIN_DIR . 'includes/admin/class-settings.php';
         }

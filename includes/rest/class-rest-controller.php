@@ -30,6 +30,18 @@ class OGMI_REST_Controller extends WP_REST_Controller {
 			'callback' => array( $this, 'add_member' ),
 			'permission_callback' => array( $this, 'can_import' ),
 		) );
+
+		register_rest_route( $this->namespace, '/job/start', array(
+			'methods'  => WP_REST_Server::CREATABLE,
+			'callback' => array( $this, 'start_job' ),
+			'permission_callback' => array( $this, 'can_import' ),
+		) );
+
+		register_rest_route( $this->namespace, '/job/status', array(
+			'methods'  => WP_REST_Server::READABLE,
+			'callback' => array( $this, 'job_status' ),
+			'permission_callback' => array( $this, 'can_import' ),
+		) );
 	}
 
 	public function can_import( WP_REST_Request $request ) {
@@ -99,6 +111,40 @@ class OGMI_REST_Controller extends WP_REST_Controller {
 			return new WP_REST_Response( array( 'message' => $result->get_error_message() ), 400 );
 		}
 		return new WP_REST_Response( $result, 200 );
+	}
+
+	public function start_job( WP_REST_Request $request ) {
+		$params = $request->get_params();
+		$file_id = sanitize_text_field( $params['file_id'] ?? '' );
+		$mapping = (array) ( $params['mapping'] ?? array() );
+		$group_id = (int) ( $params['group_id'] ?? 0 );
+		if ( empty( $file_id ) || empty( $group_id ) ) {
+			return new WP_REST_Response( array( 'message' => __( 'Missing parameters', OGMI_TEXT_DOMAIN ) ), 400 );
+		}
+		if ( empty( $GLOBALS['ogmi_import_scheduler'] ) || ! $GLOBALS['ogmi_import_scheduler'] instanceof OGMI_Import_Scheduler ) {
+			return new WP_REST_Response( array( 'message' => __( 'Scheduler unavailable', OGMI_TEXT_DOMAIN ) ), 500 );
+		}
+		$job_id = $GLOBALS['ogmi_import_scheduler']->schedule_job( array(
+			'file_id' => $file_id,
+			'mapping' => $mapping,
+			'group_id' => $group_id,
+		) );
+		return new WP_REST_Response( array( 'job_id' => $job_id ), 200 );
+	}
+
+	public function job_status( WP_REST_Request $request ) {
+		$job_id = sanitize_text_field( $request->get_param( 'job_id' ) );
+		if ( empty( $job_id ) ) {
+			return new WP_REST_Response( array( 'message' => __( 'Missing job_id', OGMI_TEXT_DOMAIN ) ), 400 );
+		}
+		if ( empty( $GLOBALS['ogmi_import_scheduler'] ) || ! $GLOBALS['ogmi_import_scheduler'] instanceof OGMI_Import_Scheduler ) {
+			return new WP_REST_Response( array( 'message' => __( 'Scheduler unavailable', OGMI_TEXT_DOMAIN ) ), 500 );
+		}
+		$status = $GLOBALS['ogmi_import_scheduler']->get_status( $job_id );
+		if ( is_wp_error( $status ) ) {
+			return new WP_REST_Response( array( 'message' => $status->get_error_message() ), 404 );
+		}
+		return new WP_REST_Response( $status, 200 );
 	}
 }
 
