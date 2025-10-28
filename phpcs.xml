@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<ruleset name="OGMI WordPress Standards">
+    <description>PHP_CodeSniffer configuration for WordPress coding standards.</description>
+    <rule ref="WordPress-Core"/>
+    <rule ref="WordPress-Docs"/>
+    <rule ref="WordPress-Extra"/>
+    <exclude-pattern>vendor/*</exclude-pattern>
+    <exclude-pattern>node_modules/*</exclude-pattern>
+    <arg value="-s"/>
+    <file>./</file>
+</ruleset>
+
+

@@ -98,6 +98,40 @@ Tokens available:
 
 If BuddyBoss is inactive or sending fails, the plugin automatically falls back to a core HTML email with a working password reset link.
 
+## REST API
+
+Base namespace: `ogmi/v1`
+
+- `POST /ogmi/v1/import/upload` (multipart: `file`, `group_id`)
+- `POST /ogmi/v1/import/process` (`file_id`, `mapping`, `batch_size`, `offset`, `group_id`)
+- `POST /ogmi/v1/member/add` (`email`, `first_name`, `last_name`, `role`, `group_id`)
+- Background jobs:
+  - `POST /ogmi/v1/job/start` (`file_id`, `mapping`, `group_id`)
+  - `GET /ogmi/v1/job/status?job_id=...`
+
+All endpoints require authenticated users who pass the import permission check.
+
+## Background Jobs
+
+Large imports can be scheduled in the background. The plugin prefers Action Scheduler if present, with WP‑Cron fallback. Poll progress via the REST job status endpoint.
+
+Filters:
+- `ogmi_scheduler_batch_size`
+- `ogmi_scheduler_group`
+
+## CLI
+
+Create BuddyBoss email template:
+
+```
+wp ogmi create-buddyboss-template
+```
+
+## XLSX Support
+
+If `PhpOffice/PhpSpreadsheet` is available, the plugin can parse `.xlsx` files for headers, previews, and batch processing. Otherwise, use CSV.
+
+
 ## Requirements
 
 - WordPress 6.0 or higher

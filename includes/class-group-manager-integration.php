@@ -267,11 +267,11 @@ class OGMI_Group_Manager_Integration {
         $result = $file_processor->process_upload( $file, $group_id );
         
         if ( is_wp_error( $result ) ) {
-            error_log('OGMI: File processing error: ' . $result->get_error_message());
+            if ( function_exists( 'ogmi_log' ) ) { ogmi_log( 'File processing error: ' . $result->get_error_message() ); }
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
         }
         
-        error_log('OGMI: File processing successful: ' . print_r($result, true));
+        if ( function_exists( 'ogmi_log' ) ) { ogmi_log( array( 'file processing successful' => $result ) ); }
         wp_send_json_success( $result );
     }
     
