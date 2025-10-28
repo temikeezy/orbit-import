@@ -11,7 +11,7 @@ A WordPress plugin that enables bulk import of members into BuddyBoss/BuddyPress
 
 ### 👥 **User Management**
 - **Individual Member Addition**: Add single members with email, first name, and last name
-- **Bulk CSV Import**: Upload CSV files to import multiple members at once
+- **Bulk CSV/Excel Import**: Upload CSV or Excel (.xlsx) files to import multiple members at once
 - **Automatic User Creation**: Creates new WordPress users if they don't exist
 - **Existing User Handling**: Adds existing users to the group without creating duplicates
 
@@ -22,23 +22,36 @@ A WordPress plugin that enables bulk import of members into BuddyBoss/BuddyPress
 
 ### 📊 **Import Process**
 - **Wizard Interface**: Step-by-step import process with visual progress indicators
-- **File Upload**: Drag-and-drop and click-to-browse CSV file upload
-- **Column Mapping**: Intuitive interface to map CSV columns to user fields
-- **Batch Processing**: Efficiently handles large CSV files
-- **Progress Tracking**: Real-time import progress with detailed results
+- **File Upload**: Drag-and-drop and click-to-browse CSV/XLSX upload
+- **Column Mapping**: Map file columns to user fields
+- **Batch Processing**: Efficiently handles large files (configurable batch size)
+- **Background Jobs**: Optional async processing via Action Scheduler (with WP‑Cron fallback)
+- **Progress Tracking**: Real-time progress with detailed results
 - **Error Handling**: Comprehensive validation and error reporting
 
 ### 🎨 **User Experience**
 - **Modern UI**: Clean, professional interface with step indicators
 - **Responsive Design**: Works on desktop and mobile devices
+- **Accessibility**: ARIA live announcements and sensible focus management
 - **Visual Feedback**: Clear success/error messages and progress indicators
 - **Restart Options**: Easy navigation between import steps
+
+### ⚙️ **Developer/Operations**
+- **REST API**: Endpoints to upload, process, add members, and manage jobs
+- **Settings Page**: Batch size, email toggles, multisite options, BuddyBoss template slug
+- **BuddyBoss Emails**: Uses `bp_send_email` with tokens; core HTML fallback
+- **WP‑CLI**: Command to scaffold the BuddyBoss email template
+- **Filters/Actions**: Extensive hooks for customization (batch size, roles, MIME, emails)
 
 ## Installation
 
 1. Upload the plugin files to `/wp-content/plugins/orbit-group-member-importer/`
 2. Activate the plugin through the 'Plugins' screen in WordPress
 3. Ensure BuddyBoss or BuddyPress is installed and active
+
+Optional:
+- Install `PhpOffice/PhpSpreadsheet` for Excel (.xlsx) parsing
+- Install Action Scheduler for robust background processing
 
 ## Usage
 
@@ -47,18 +60,18 @@ A WordPress plugin that enables bulk import of members into BuddyBoss/BuddyPress
 2. Go to the "Members" section
 3. Use the "Quick Add Member" form to add individual members
 
-### Bulk CSV Import
+### Bulk CSV/Excel Import
 1. Navigate to your group's management page
 2. Go to the "Members" section
 3. Click "Bulk Import from CSV File"
 4. Follow the wizard steps:
-   - **Step 1**: Upload your CSV file
+   - **Step 1**: Upload your CSV or Excel (.xlsx) file
    - **Step 2**: Map columns (email, first_name, last_name)
    - **Step 3**: Monitor import progress
    - **Step 4**: Review import results
 
-### CSV File Format
-Your CSV file should include the following columns:
+### File Format
+Your CSV/XLSX file should include the following columns:
 - `email` (required): Valid email addresses
 - `first_name` (optional): User's first name
 - `last_name` (optional): User's last name
@@ -129,7 +142,7 @@ wp ogmi create-buddyboss-template
 
 ## XLSX Support
 
-If `PhpOffice/PhpSpreadsheet` is available, the plugin can parse `.xlsx` files for headers, previews, and batch processing. Otherwise, use CSV.
+If `PhpOffice/PhpSpreadsheet` is available, the plugin can parse `.xlsx` files for headers, previews, and batch processing. Otherwise, the UI falls back to CSV.
 
 
 ## Requirements
@@ -146,8 +159,17 @@ orbit-group-member-importer/
 ├── orbit-group-member-importer.php    # Main plugin file
 ├── includes/
 │   ├── class-group-manager-integration.php  # Frontend integration
-│   ├── class-file-processor.php             # File handling and parsing
-│   └── class-user-manager.php               # User creation and management
+│   ├── class-file-processor.php             # File handling and parsing (CSV/XLSX)
+│   ├── class-user-manager.php               # User creation and management
+│   ├── class-permission-handler.php         # Capability checks
+│   ├── rest/
+│   │   └── class-rest-controller.php        # REST API endpoints
+│   ├── scheduler/
+│   │   └── class-import-scheduler.php       # Background job processing
+│   ├── admin/
+│   │   └── class-settings.php               # Settings page and tools
+│   └── cli/
+│       └── class-ogmi-cli.php               # WP‑CLI commands
 ├── assets/
 │   ├── css/
 │   │   └── group-manager.css         # Frontend styles
@@ -156,7 +178,10 @@ orbit-group-member-importer/
 ├── templates/
 │   └── members-import-interface.php  # Import interface template
 ├── samples/
-│   └── sample.csv                    # Example CSV file
+│   ├── sample.csv                    # Example CSV file
+│   └── sample-xlsx.php               # Dynamic Excel sample generator
+├── languages/
+│   └── .placeholder                  # Translations scaffold
 └── README.md                         # This file
 ```
 
@@ -171,29 +196,34 @@ orbit-group-member-importer/
 ### Security Features
 - Nonce verification for all AJAX requests
 - Permission checks for group access
-- File type validation (CSV only)
+- File type and MIME validation (CSV/XLSX)
 - Email validation and sanitization
-- SQL injection prevention
+- CSV delimiter detection and safe parsing
+- Temporary upload TTL and cleanup
 
 ### Performance Optimizations
 - Batch processing for large files
+- Optional background jobs (Action Scheduler/WP‑Cron)
 - Temporary file cleanup
 - Efficient database queries
 - Minimal memory usage
 
 ## Changelog
 
-### Version 1.1.0 (Current)
+### Version 1.1.1 (Current)
 - ✅ Complete frontend integration into BuddyBoss group management
 - ✅ Wizard-style import interface with step indicators
 - ✅ Drag-and-drop file upload functionality
 - ✅ Column mapping interface
-- ✅ Batch processing for large CSV files
+- ✅ Batch processing for large CSV/XLSX files
 - ✅ Comprehensive error handling and validation
 - ✅ Real-time progress tracking
 - ✅ Automatic user creation and group membership
 - ✅ Role-based access control
 - ✅ Mobile-responsive design
+- ✅ REST API and background job support
+- ✅ Hardened welcome emails (BuddyBoss tokens + core HTML fallback)
+- ✅ Settings page, privacy policy content, and WP‑CLI helper
 
 ### Version 1.0.0
 - Initial release with basic functionality
