@@ -17,7 +17,7 @@ $group = groups_get_group( $group_id );
 <div class="ogmi-import-interface">
     <div class="ogmi-import-header">
         <h3><?php echo esc_html__( 'Import Members', OGMI_TEXT_DOMAIN ); ?></h3>
-        <p><?php echo esc_html__( 'Add new members to this group individually or in bulk from a CSV file.', OGMI_TEXT_DOMAIN ); ?></p>
+        <p><?php echo esc_html__( 'Add new members to this group individually or in bulk from a CSV or Excel file.', OGMI_TEXT_DOMAIN ); ?></p>
     </div>
 
     <div class="ogmi-import-actions">
@@ -63,7 +63,7 @@ $group = groups_get_group( $group_id );
         <!-- Bulk Import Toggle -->
         <div class="ogmi-bulk-import-toggle">
             <button type="button" id="ogmi-toggle-bulk-import" class="ogmi-button ogmi-button-secondary">
-                <?php echo esc_html__( 'Bulk Import from CSV', OGMI_TEXT_DOMAIN ); ?>
+                <?php echo esc_html__( 'Bulk Import from CSV/Excel', OGMI_TEXT_DOMAIN ); ?>
             </button>
         </div>
     </div>
@@ -71,8 +71,8 @@ $group = groups_get_group( $group_id );
     <!-- Bulk Import Section (Initially Hidden) -->
     <div class="ogmi-bulk-import-section" id="ogmi-bulk-import-section" style="display: none;">
         <div class="ogmi-bulk-header">
-            <h4><?php echo esc_html__( 'Bulk Import from CSV File', OGMI_TEXT_DOMAIN ); ?></h4>
-            <p><?php echo esc_html__( 'Upload a CSV file to add multiple members at once.', OGMI_TEXT_DOMAIN ); ?></p>
+            <h4><?php echo esc_html__( 'Bulk Import from CSV or Excel File', OGMI_TEXT_DOMAIN ); ?></h4>
+            <p><?php echo esc_html__( 'Upload a CSV or Excel (.xlsx) file to add multiple members at once.', OGMI_TEXT_DOMAIN ); ?></p>
         </div>
 
         <!-- Step Indicator -->
@@ -99,9 +99,12 @@ $group = groups_get_group( $group_id );
         <div class="ogmi-wizard-step" id="ogmi-step-1">
             <!-- Download Sample File -->
             <div class="ogmi-download-sample">
-                <p><?php echo esc_html__( 'Download sample CSV file to understand the format:', OGMI_TEXT_DOMAIN ); ?></p>
+                <p><?php echo esc_html__( 'Download sample files to understand the format:', OGMI_TEXT_DOMAIN ); ?></p>
                 <a href="<?php echo esc_url( OGMI_PLUGIN_URL . 'samples/sample.csv' ); ?>" class="ogmi-button ogmi-button-small" download>
                     <?php echo esc_html__( 'Download Sample CSV', OGMI_TEXT_DOMAIN ); ?>
+                </a>
+                <a href="<?php echo esc_url( OGMI_PLUGIN_URL . 'samples/sample-xlsx.php' ); ?>" class="ogmi-button ogmi-button-small">
+                    <?php echo esc_html__( 'Download Sample Excel (.xlsx)', OGMI_TEXT_DOMAIN ); ?>
                 </a>
             </div>
 
@@ -110,10 +113,10 @@ $group = groups_get_group( $group_id );
                 <div id="ogmi-dropzone" class="ogmi-dropzone">
                     <div class="ogmi-dropzone-content">
                         <span class="ogmi-dropzone-icon">📁</span>
-                        <p><?php echo esc_html__( 'Drag & drop your CSV file here, or click to browse', OGMI_TEXT_DOMAIN ); ?></p>
-                        <p class="ogmi-dropzone-hint"><?php echo esc_html__( 'Supports CSV files up to 10MB', OGMI_TEXT_DOMAIN ); ?></p>
+                        <p><?php echo esc_html__( 'Drag & drop your CSV or Excel (.xlsx) file here, or click to browse', OGMI_TEXT_DOMAIN ); ?></p>
+                        <p class="ogmi-dropzone-hint"><?php echo esc_html__( 'Supports CSV/XLSX files up to 10MB', OGMI_TEXT_DOMAIN ); ?></p>
                     </div>
-                    <input type="file" id="ogmi-file-input" accept=".csv" style="display: none;">
+                    <input type="file" id="ogmi-file-input" accept=".csv,.xlsx" style="display: none;">
                 </div>
                 
                 <div id="ogmi-upload-progress" class="ogmi-progress" style="display: none;">
