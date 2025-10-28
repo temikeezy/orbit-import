@@ -190,20 +190,111 @@ class OGMI_User_Manager {
     /**
      * Send welcome email to new user
      */
-    private function send_welcome_email( $user_id, $password ) {
-        // Check if welcome emails are enabled
-        $send_welcome = apply_filters( 'ogmi_send_welcome_email', true, $user_id );
-        
-        if ( ! $send_welcome ) {
-            return;
-        }
-        
-        // Send WordPress new user notification
-        wp_new_user_notification( $user_id, null, 'user' );
-        
-        // You can also send a custom welcome email here
-        do_action( 'ogmi_user_created', $user_id, $password );
-    }
+	private function send_welcome_email( $user_id, $password ) {
+		// Preserve existing toggle
+		$send_welcome = apply_filters( 'ogmi_send_welcome_email', true, $user_id );
+		if ( ! $send_welcome ) {
+			return;
+		}
+
+		$user = get_user_by( 'id', $user_id );
+		if ( ! $user instanceof WP_User ) {
+			return;
+		}
+
+		// Build a real reset URL now (so onboarding works even if later emails fail)
+		$key = get_password_reset_key( $user );
+		if ( is_wp_error( $key ) ) {
+			// If we can’t generate a key, don’t attempt to send a broken email
+			return;
+		}
+
+		$reset_url = add_query_arg(
+			array(
+				'action' => 'rp',
+				'key'    => $key,
+				'login'  => rawurlencode( $user->user_login ),
+			),
+			wp_login_url()
+		);
+
+		$sent = false;
+
+		// Prefer BuddyBoss email framework if present
+		if ( function_exists( 'bp_send_email' ) ) {
+			$tokens = array(
+				'recipient.name' => $user->display_name ?: $user->user_login,
+				'reset.url'      => $reset_url,
+				'site.name'      => wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ),
+				'site.url'       => home_url( '/' ),
+			);
+
+			// Use a custom template slug "orbit-welcome".
+			// Create this in BuddyBoss > Emails and include {{reset.url}} in the content.
+			$email_type = 'orbit-welcome';
+
+			try {
+				$sent = (bool) bp_send_email( $email_type, $user_id, array( 'tokens' => $tokens ) );
+			} catch ( Exception $e ) {
+				if ( function_exists( 'error_log' ) ) {
+					error_log( '[OGMI] bp_send_email exception: ' . $e->getMessage() );
+				}
+				$sent = false;
+			}
+		}
+
+		// Fallback to core mail if BuddyBoss is missing or sending failed
+		if ( ! $sent ) {
+			$this->send_core_welcome_fallback( $user, $reset_url );
+		}
+
+		// Fire existing hook for any custom listeners (unchanged behavior)
+		do_action( 'ogmi_user_created', $user_id, $password );
+	}
+
+	private function send_core_welcome_fallback( WP_User $user, $reset_url ) {
+		$blogname = wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES );
+		$subject  = sprintf( 'Welcome to %s', $blogname );
+
+		$body = sprintf(
+			'<p>Hi %s,</p>
+			 <p>Welcome to <strong>%s</strong>! Your account has been created.</p>
+			 <p>Please set your password using the secure link below:</p>
+			 <p><a href="%s">%s</a></p>
+			 <p>If you didn’t request this, you can ignore this email.</p>
+			 <p>— %s</p>',
+			esc_html( $user->display_name ?: $user->user_login ),
+			esc_html( $blogname ),
+			esc_url( $reset_url ),
+			esc_html( $reset_url ),
+			esc_html( parse_url( home_url(), PHP_URL_HOST ) )
+		);
+
+		// Ensure HTML + AltBody. Add ephemeral filters and remove immediately after send.
+		$set_html = function() { return 'text/html'; };
+		add_filter( 'wp_mail_content_type', $set_html );
+
+		$set_alt = function( $phpmailer ) use ( $body ) {
+			if ( empty( $phpmailer->AltBody ) ) {
+				$phpmailer->AltBody = wp_strip_all_tags( $body );
+			}
+		};
+		add_action( 'phpmailer_init', $set_alt );
+
+		// Optional: tiny guard rail to avoid "Message body empty"
+		if ( trim( wp_strip_all_tags( $body ) ) === '' ) {
+			if ( function_exists( 'error_log' ) ) {
+				error_log( '[OGMI] Core welcome fallback: computed empty body; injecting placeholder.' );
+			}
+			$body = '<p>(Email content missing. Please contact support.)</p>';
+		}
+
+		wp_mail( $user->user_email, $subject, $body );
+
+		// Clean up
+		remove_filter( 'wp_mail_content_type', $set_html );
+		remove_action( 'phpmailer_init', $set_alt );
+	}
     
     /**
      * Get user group roles

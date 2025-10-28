@@ -70,6 +70,34 @@ john.doe@example.com,John,Doe
 jane.smith@example.com,Jane,Smith
 ```
 
+## BuddyBoss Email Template (Recommended)
+
+If you use BuddyBoss/BuddyPress emails, create a template with the slug `orbit-welcome` and include the tokens used by this plugin. Set the template subject and body as follows:
+
+### Subject
+
+```
+Welcome to {{site.name}}
+```
+
+### Body (HTML)
+
+```
+<p>Hi {{recipient.name}},</p>
+<p>Welcome to <strong>{{site.name}}</strong>!</p>
+<p>Click below to set your password and get started:</p>
+<p><a href="{{reset.url}}">{{reset.url}}</a></p>
+<p>See you inside — <a href="{{site.url}}">{{site.url}}</a></p>
+```
+
+Tokens available:
+- `{{recipient.name}}`
+- `{{reset.url}}`
+- `{{site.name}}`
+- `{{site.url}}`
+
+If BuddyBoss is inactive or sending fails, the plugin automatically falls back to a core HTML email with a working password reset link.
+
 ## Requirements
 
 - WordPress 6.0 or higher
