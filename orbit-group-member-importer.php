@@ -77,6 +77,9 @@ class ORBIT_Group_Member_Importer {
         // Schedule cleanup of expired files
         add_action( 'wp_loaded', array( $this, 'schedule_cleanup' ) );
 
+        // Privacy policy content
+        add_action( 'admin_init', array( $this, 'maybe_add_privacy_policy' ) );
+
         // Initialize REST API controller
         if ( class_exists( 'OGMI_REST_Controller' ) ) {
             add_action( 'rest_api_init', function() { ( new OGMI_REST_Controller() )->register_routes(); } );
@@ -152,6 +155,40 @@ class ORBIT_Group_Member_Importer {
         
         // Flush rewrite rules
         flush_rewrite_rules();
+
+        // Optionally create BuddyBoss email template if available
+        if ( function_exists( 'bp_send_email' ) && function_exists( 'bp_get_email_post_type' ) ) {
+            $template_type = apply_filters( 'ogmi_welcome_email_template', 'orbit-welcome', null );
+            if ( function_exists( 'bp_email_get_post_by_type' ) ) {
+                $existing = bp_email_get_post_by_type( $template_type );
+                if ( ! $existing ) {
+                    $subject = 'Welcome to {{site.name}}';
+                    $content = '<p>Hi {{recipient.name}},</p>
+<p>Welcome to <strong>{{site.name}}</strong>!</p>
+<p>Click below to set your password and get started:</p>
+<p><a href="{{reset.url}}">{{reset.url}}</a></p>
+<p>See you inside — <a href="{{site.url}}">{{site.url}}</a></p>';
+                    $postarr = array(
+                        'post_type'   => bp_get_email_post_type(),
+                        'post_status' => 'publish',
+                        'post_title'  => $template_type,
+                    );
+                    $post_id = wp_insert_post( $postarr, true );
+                    if ( ! is_wp_error( $post_id ) && function_exists( 'bp_update_email' ) ) {
+                        bp_update_email( array(
+                            'id'      => $post_id,
+                            'args'    => array(
+                                'post_content' => $content,
+                                'post_excerpt' => $subject,
+                            ),
+                            'tax_input' => array(
+                                bp_get_email_tax_type() => array( $template_type ),
+                            ),
+                        ) );
+                    }
+                }
+            }
+        }
     }
     
     /**
@@ -163,6 +200,16 @@ class ORBIT_Group_Member_Importer {
         }
         
         add_action( 'ogmi_cleanup_expired_files', array( $this, 'cleanup_expired_files' ) );
+    }
+
+    /**
+     * Add privacy policy content
+     */
+    public function maybe_add_privacy_policy() {
+        if ( function_exists( 'wp_add_privacy_policy_content' ) ) {
+            $content = apply_filters( 'ogmi_privacy_policy_content', __( 'This site allows group managers to import members by email and may send welcome emails with a password setup link. Uploaded import files are stored temporarily and automatically deleted.', OGMI_TEXT_DOMAIN ) );
+            wp_add_privacy_policy_content( __( 'ORBIT Group Member Importer', OGMI_TEXT_DOMAIN ), wp_kses_post( '<p>' . $content . '</p>' ) );
+        }
     }
     
     /**
@@ -202,3 +249,20 @@ class ORBIT_Group_Member_Importer {
 
 // Initialize the plugin
 ORBIT_Group_Member_Importer::get_instance();
+
+// Minimal logging helper (toggle via filter)
+if ( ! function_exists( 'ogmi_log' ) ) {
+    function ogmi_log( $message ) {
+        $enabled = apply_filters( 'ogmi_enable_logging', false );
+        if ( ! $enabled ) {
+            return;
+        }
+        if ( is_array( $message ) || is_object( $message ) ) {
+            $message = print_r( $message, true );
+        }
+        if ( function_exists( 'error_log' ) ) {
+            error_log( '[OGMI] ' . $message );
+        }
+    }
+}
+

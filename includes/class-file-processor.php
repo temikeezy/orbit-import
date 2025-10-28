@@ -59,7 +59,7 @@ class OGMI_File_Processor {
         if ( $finfo ) {
             $mime = finfo_file( $finfo, $file_path );
             finfo_close( $finfo );
-            $allowed_mimes = apply_filters( 'ogmi_allowed_mimes', array( 'text/plain', 'text/csv', 'application/vnd.ms-excel' ) );
+            $allowed_mimes = apply_filters( 'ogmi_allowed_mimes', array( 'text/plain', 'text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ) );
             if ( ! in_array( $mime, $allowed_mimes, true ) ) {
                 unlink( $file_path );
                 return new WP_Error( 'invalid_mime', __( 'Invalid file MIME type.', OGMI_TEXT_DOMAIN ) );
@@ -175,11 +175,23 @@ class OGMI_File_Processor {
      * Extract headers from Excel file
      */
     private function extract_xlsx_headers( $file_path ) {
-        // For Excel files, we'll use a simple approach
-        // In a production environment, you might want to use a library like PhpSpreadsheet
-        
-        // For now, we'll return an error and suggest using CSV
-        return new WP_Error( 'excel_not_supported', __( 'Excel files are not yet supported. Please use CSV format.', OGMI_TEXT_DOMAIN ) );
+        if ( ! class_exists( '\\PhpOffice\\PhpSpreadsheet\\IOFactory' ) ) {
+            return new WP_Error( 'excel_library_missing', __( 'Excel parsing library not available.', OGMI_TEXT_DOMAIN ) );
+        }
+        try {
+            $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader('Xlsx');
+            $reader->setReadDataOnly(true);
+            $spreadsheet = $reader->load( $file_path );
+            $sheet = $spreadsheet->getActiveSheet();
+            $row = $sheet->rangeToArray('1:1', NULL, TRUE, TRUE, TRUE);
+            if ( ! $row || ! is_array( $row ) ) {
+                return new WP_Error( 'invalid_excel', __( 'Invalid Excel file format', OGMI_TEXT_DOMAIN ) );
+            }
+            $headers = array_values( array_map( 'trim', array_filter( array_values( $row[1] ) ) ) );
+            return $headers;
+        } catch ( Exception $e ) {
+            return new WP_Error( 'excel_read_failed', __( 'Failed to read Excel file', OGMI_TEXT_DOMAIN ) );
+        }
     }
     
     /**
@@ -225,6 +237,26 @@ class OGMI_File_Processor {
             }
             
             fclose( $handle );
+        } elseif ( $file_extension === 'xlsx' ) {
+            if ( ! class_exists( '\\PhpOffice\\PhpSpreadsheet\\IOFactory' ) ) {
+                return $rows;
+            }
+            try {
+                $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader('Xlsx');
+                $reader->setReadDataOnly(true);
+                $spreadsheet = $reader->load( $file_path );
+                $sheet = $spreadsheet->getActiveSheet();
+                $highestColumn = $sheet->getHighestColumn();
+                $data = $sheet->rangeToArray('A2:' . $highestColumn . ( 1 + $limit ), NULL, TRUE, TRUE, TRUE);
+                $count = 0;
+                foreach ( $data as $row ) {
+                    if ( $count >= $limit ) { break; }
+                    $rows[] = array_map( 'trim', array_values( $row ) );
+                    $count++;
+                }
+            } catch ( Exception $e ) {
+                // ignore preview errors
+            }
         }
         
         return $rows;
@@ -249,6 +281,20 @@ class OGMI_File_Processor {
             
             // Subtract 1 for header row
             return max( 0, $count - 1 );
+        } elseif ( $file_extension === 'xlsx' ) {
+            if ( ! class_exists( '\\PhpOffice\\PhpSpreadsheet\\IOFactory' ) ) {
+                return 0;
+            }
+            try {
+                $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader('Xlsx');
+                $reader->setReadDataOnly(true);
+                $spreadsheet = $reader->load( $file_path );
+                $sheet = $spreadsheet->getActiveSheet();
+                $highestRow = $sheet->getHighestDataRow();
+                return max( 0, $highestRow - 1 );
+            } catch ( Exception $e ) {
+                return 0;
+            }
         }
         
         return 0;
@@ -356,6 +402,26 @@ class OGMI_File_Processor {
             }
             
             fclose( $handle );
+        } elseif ( $file_extension === 'xlsx' ) {
+            if ( ! class_exists( '\\PhpOffice\\PhpSpreadsheet\\IOFactory' ) ) {
+                return $rows;
+            }
+            try {
+                $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader('Xlsx');
+                $reader->setReadDataOnly(true);
+                $spreadsheet = $reader->load( $file_path );
+                $sheet = $spreadsheet->getActiveSheet();
+                // Skip header row and offset by $offset
+                $startRow = 2 + (int) $offset;
+                $endRow = $startRow + (int) $batch_size - 1;
+                $highestColumn = $sheet->getHighestColumn();
+                $data = $sheet->rangeToArray('A' . $startRow . ':' . $highestColumn . $endRow, NULL, TRUE, TRUE, TRUE);
+                foreach ( $data as $row ) {
+                    $rows[] = array_map( 'trim', array_values( $row ) );
+                }
+            } catch ( Exception $e ) {
+                // ignore batch errors; return collected rows
+            }
         }
         
         return $rows;
